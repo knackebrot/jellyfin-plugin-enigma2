@@ -12,8 +12,8 @@ If paths are entered on the config page then remember to end them with a slash
  
  
 Setup on Vu+ / Enigma2
-
 ----------------------
+
 Ensure openWebIf is installed and running - go into settings and make a note of them so they can be entered on the MediaBrowser Vu+ config page.
  
  
