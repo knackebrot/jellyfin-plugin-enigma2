@@ -1,7 +1,7 @@
 # MediaBrowser.Plugins.VuPlus
 MediaBrowser Vu+ Plugin
 
-Plugin foor MediaBrowser to allow it to view channels, browser epg, set/delete timers, play recordings etc.
+Plugin foor MediaBrowser to allow it to view channels, browse epg, set and delete timers, play recordings etc.
 
 Known Issues / Limitations
 --------------------------
