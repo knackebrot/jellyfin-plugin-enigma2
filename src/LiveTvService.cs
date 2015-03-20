@@ -1,8 +1,10 @@
-using MediaBrowser.Common.Extensions;
+﻿using MediaBrowser.Common.Extensions;
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Channels;
 using MediaBrowser.Controller.Drawing;
 using MediaBrowser.Controller.LiveTv;
+using MediaBrowser.Model.Dto;
+using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.MediaInfo;
 using MediaBrowser.Model.Net;
@@ -40,9 +42,9 @@ namespace MediaBrowser.Plugins.VuPlus
 
         private String tvBouquetSRef;
         List<ChannelInfo> tvChannelInfos = new List<ChannelInfo>();
- 
 
-        public LiveTvService(IHttpClient httpClient, IJsonSerializer jsonSerializer,ILogger logger)
+
+        public LiveTvService(IHttpClient httpClient, IJsonSerializer jsonSerializer, ILogger logger)
         {
             _httpClient = httpClient;
             _logger = logger;
@@ -124,12 +126,13 @@ namespace MediaBrowser.Plugins.VuPlus
             {
                 // connect to VuPlus box to test connectivity and at same time get sRef for TV Bouquet.
                 tvBouquetSRef = await InitiateSession(cancellationToken, config.TVBouquet).ConfigureAwait(false);
-            } else
+            }
+            else
             {
                 // connect to VuPlus box to test connectivity.
                 String resultNotRequired = await InitiateSession(cancellationToken, null).ConfigureAwait(false);
                 tvBouquetSRef = null;
-            }          
+            }
         }
 
 
@@ -183,7 +186,7 @@ namespace MediaBrowser.Plugins.VuPlus
                         XmlNodeList e2services = xml.GetElementsByTagName("e2service");
 
                         // If TV Bouquet passed find associated service reference
-                        if (!string.IsNullOrEmpty(tvBouquet)) 
+                        if (!string.IsNullOrEmpty(tvBouquet))
                         {
                             foreach (XmlNode xmlNode in e2services)
                             {
@@ -243,7 +246,7 @@ namespace MediaBrowser.Plugins.VuPlus
             var protocol = "http";
             if (Plugin.Instance.Configuration.UseSecureHTTPS)
                 protocol = "https";
- 
+
             var baseUrl = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
 
             var baseUrlPicon = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
@@ -263,8 +266,8 @@ namespace MediaBrowser.Plugins.VuPlus
             var options = new HttpRequestOptions
             {
                 CancellationToken = cancellationToken,
-                    Url = url,
-                    UserAgent = "vuplus-pvraddon-agent/1.0"
+                Url = url,
+                UserAgent = "vuplus-pvraddon-agent/1.0"
             };
 
             if (!string.IsNullOrEmpty(Plugin.Instance.Configuration.WebInterfaceUsername))
@@ -284,7 +287,7 @@ namespace MediaBrowser.Plugins.VuPlus
                     string xmlResponse = reader.ReadToEnd();
                     UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetChannelsAsync response: {0}", xmlResponse));
 
-                    try 
+                    try
                     {
                         var xml = new XmlDocument();
                         xml.LoadXml(xmlResponse);
@@ -327,7 +330,6 @@ namespace MediaBrowser.Plugins.VuPlus
                         else
                         {
                             // Load channels for specified TV Bouquet only
-                            _logger.Info("[VuPlus] GetChannelsAsync for specified TV Bouquets");
                             int count = 1;
 
                             XmlNodeList e2services = xml.GetElementsByTagName("e2service");
@@ -681,6 +683,7 @@ namespace MediaBrowser.Plugins.VuPlus
                             edate = edate.AddSeconds(edated); //add seconds
                             recordingInfo.EndDate = edate.ToUniversalTime();
 
+                            //recordingInfo.EpisodeTitle = e2title;
                             recordingInfo.EpisodeTitle = null;
 
                             recordingInfo.Overview = e2description;
@@ -732,14 +735,14 @@ namespace MediaBrowser.Plugins.VuPlus
         /// <returns></returns>
         public async Task DeleteRecordingAsync(string recordingId, CancellationToken cancellationToken)
         {
-            _logger.Info(string.Format("[VuPlus] Start Delete Recording Async for recordingId: {0}",recordingId));
+            _logger.Info(string.Format("[VuPlus] Start Delete Recording Async for recordingId: {0}", recordingId));
             await EnsureConnectionAsync(cancellationToken).ConfigureAwait(false);
 
             var protocol = "http";
             if (Plugin.Instance.Configuration.UseSecureHTTPS)
                 protocol = "https";
 
-            var baseUrl =protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
+            var baseUrl = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
 
             var url = string.Format("{0}/web/moviedelete?sRef={1}", baseUrl, recordingId);
             UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] DeleteRecordingAsync url: {0}", url));
@@ -907,7 +910,7 @@ namespace MediaBrowser.Plugins.VuPlus
         /// <returns></returns>
         public async Task CreateTimerAsync(TimerInfo info, CancellationToken cancellationToken)
         {
-            _logger.Info(string.Format("[VuPlus] Start CreateTimerAsync for ChannelId: {0} & Name: {1}",info.ChannelId, info.Name));
+            _logger.Info(string.Format("[VuPlus] Start CreateTimerAsync for ChannelId: {0} & Name: {1}", info.ChannelId, info.Name));
             await EnsureConnectionAsync(cancellationToken).ConfigureAwait(false);
 
             // extract eventid from info.ProgramId
@@ -924,7 +927,7 @@ namespace MediaBrowser.Plugins.VuPlus
 
             if (!string.IsNullOrEmpty(Plugin.Instance.Configuration.RecordingPath))
             {
-                url = url + string.Format("&dirname={0}",  WebUtility.UrlEncode(Plugin.Instance.Configuration.RecordingPath));
+                url = url + string.Format("&dirname={0}", WebUtility.UrlEncode(Plugin.Instance.Configuration.RecordingPath));
             }
 
             UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] CreateTimerAsync url: {0}", url));
@@ -1044,7 +1047,7 @@ namespace MediaBrowser.Plugins.VuPlus
                         XmlNodeList e2timer = xml.GetElementsByTagName("e2timer");
                         foreach (XmlNode xmlNode in e2timer)
                         {
-                           var timerInfo = new TimerInfo();
+                            var timerInfo = new TimerInfo();
 
                             var e2servicereference = "?";
                             var e2name = "?";
@@ -1083,7 +1086,7 @@ namespace MediaBrowser.Plugins.VuPlus
                                 else if (node.Name == "e2state")
                                 {
                                     e2state = node.InnerText;
-                                }                                                
+                                }
                             }
 
                             // only interested in pending timers and ones recording now
@@ -1117,7 +1120,7 @@ namespace MediaBrowser.Plugins.VuPlus
                                     timerInfo.Status = RecordingStatus.Scheduled;
                                 if (e2state == "2")
                                     timerInfo.Status = RecordingStatus.InProgress;
- 
+
                                 timerInfos.Add(timerInfo);
                                 count = count + 1;
                             }
@@ -1138,13 +1141,22 @@ namespace MediaBrowser.Plugins.VuPlus
             }
         }
 
+        public Task<List<MediaSourceInfo>> GetChannelStreamMediaSources(string channelId, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<List<MediaSourceInfo>> GetRecordingStreamMediaSources(string recordingId, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
         /// <summary>
         /// Get the live channel stream, zap to channel if required.
         /// </summary>
         /// <param name="cancellationToken">The CancellationToken</param>
-        /// <returns>ChannelMediaInfo</returns>
-        public async Task<ChannelMediaInfo> GetChannelStream(string channelOid, CancellationToken cancellationToken)
+        /// <returns>MediaSourceInfo</returns>
+        public async Task<MediaSourceInfo> GetChannelStream(string channelOid, string mediaSourceId, CancellationToken cancellationToken)
         {
             _logger.Info("[VuPlus] Start GetChannelStream");
 
@@ -1164,13 +1176,13 @@ namespace MediaBrowser.Plugins.VuPlus
             string streamUrl = string.Format("{0}/{1}", baseUrl, channelOid);
             UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetChannelStream url: {0}", streamUrl));
 
-            return new ChannelMediaInfo
+            return new MediaSourceInfo
             {
                 Id = _liveStreams.ToString(CultureInfo.InvariantCulture),
                 Path = streamUrl,
                 Protocol = MediaProtocol.Http
-            };               
-            throw new ResourceNotFoundException(string.Format("Could not stream channel {0}", channelOid));            
+            };
+            throw new ResourceNotFoundException(string.Format("Could not stream channel {0}", channelOid));
         }
 
 
@@ -1255,8 +1267,8 @@ namespace MediaBrowser.Plugins.VuPlus
                     }
                 }
             }
-        
-        
+
+
         }
 
 
@@ -1286,7 +1298,7 @@ namespace MediaBrowser.Plugins.VuPlus
         /// <returns>IEnumerable<ProgramInfo></returns>
         public async Task<IEnumerable<ProgramInfo>> GetProgramsAsync(string channelId, DateTime startDateUtc, DateTime endDateUtc, CancellationToken cancellationToken)
         {
-            _logger.Info(string.Format("[VuPlus] Start GetProgramsAsync for channelId: {0}",channelId));
+            _logger.Info("[VuPlus] Start GetProgramsAsync");
             await EnsureConnectionAsync(cancellationToken).ConfigureAwait(false);
 
             Random rnd = new Random();
@@ -1305,7 +1317,7 @@ namespace MediaBrowser.Plugins.VuPlus
 
             var options = new HttpRequestOptions()
             {
-                 CancellationToken = cancellationToken,
+                CancellationToken = cancellationToken,
                 Url = url
             };
 
@@ -1315,9 +1327,9 @@ namespace MediaBrowser.Plugins.VuPlus
                 authInfo = Convert.ToBase64String(Encoding.Default.GetBytes(authInfo));
                 options.RequestHeaders["Authorization"] = "Basic " + authInfo;
             }
-            
+
             using (var stream = await _httpClient.Get(options).ConfigureAwait(false))
-           {
+            {
                 using (StreamReader reader = new StreamReader(stream))
                 {
                     string xmlResponse = reader.ReadToEnd();
@@ -1375,7 +1387,7 @@ namespace MediaBrowser.Plugins.VuPlus
                                 }
                                 else if (node.Name == "e2eventdescriptionextended")
                                 {
-                                    e2eventdescriptionextended  = node.InnerText;
+                                    e2eventdescriptionextended = node.InnerText;
                                 }
                                 else if (node.Name == "e2eventservicereference")
                                 {
@@ -1397,10 +1409,12 @@ namespace MediaBrowser.Plugins.VuPlus
                                 UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetProgramsAsync epc full ending without adding channel name : {0} program : {1}", e2eventservicename, e2eventtitle));
                                 return programInfos;
                             }
-                            else 
+                            else
                             {
                                 UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetProgramsAsync adding program for channel name : {0} program : {1}", e2eventservicename, e2eventtitle));
-                                programInfo.HasImage = false;
+                                //programInfo.HasImage = false;
+                                //programInfo.ImagePath = null;
+                                //programInfo.ImageUrl = null;
                                 if (count == 1)
                                 {
                                     foreach (ChannelInfo channelInfo in tvChannelInfos)
@@ -1424,7 +1438,7 @@ namespace MediaBrowser.Plugins.VuPlus
 
                                 programInfo.ChannelId = e2eventservicereference;
 
-                                // the Id appears to have to be unique so will try to make it so
+                                // for some reason the Id appears to have to be unique so will make it so
                                 programInfo.Id = e2eventservicereference + "~" + e2eventid + "~" + count + "~" + rnd.Next();
 
                                 programInfo.Overview = e2eventdescriptionextended;
@@ -1440,19 +1454,19 @@ namespace MediaBrowser.Plugins.VuPlus
                                 genre.Add("Unknown");
                                 programInfo.Genres = genre;
 
-                                programInfo.OriginalAirDate = null;
+                                //programInfo.OriginalAirDate = null;
                                 programInfo.Name = e2eventtitle;
-                                programInfo.OfficialRating = null;
-                                programInfo.CommunityRating = null;
-                                programInfo.EpisodeTitle = null;
-                                programInfo.Audio = null;
-                                programInfo.IsHD = false;
-                                programInfo.IsRepeat = false;
-                                programInfo.IsSeries = false;
-                                programInfo.IsNews = false;
-                                programInfo.IsMovie = false;
-                                programInfo.IsKids = false;
-                                programInfo.IsSports = false;
+                                //programInfo.OfficialRating = null;
+                                //programInfo.CommunityRating = null;
+                                //programInfo.EpisodeTitle = null;
+                                //programInfo.Audio = null;
+                                //programInfo.IsHD = false;
+                                //programInfo.IsRepeat = false;
+                                //programInfo.IsSeries = false;
+                                //programInfo.IsNews = false;
+                                //programInfo.IsMovie = false;
+                                //programInfo.IsKids = false;
+                                //programInfo.IsSports = false;
 
                                 programInfos.Add(programInfo);
                                 count = count + 1;
@@ -1565,7 +1579,7 @@ namespace MediaBrowser.Plugins.VuPlus
                     }
 
                 }
-            }            
+            }
         }
 
 
@@ -1589,7 +1603,7 @@ namespace MediaBrowser.Plugins.VuPlus
         }
 
 
-        public async Task<ChannelMediaInfo> GetRecordingStream(string recordingId, CancellationToken cancellationToken)
+        public async Task<MediaSourceInfo> GetRecordingStream(string recordingId, string mediaSourceId, CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
         }
@@ -1723,13 +1737,6 @@ namespace MediaBrowser.Plugins.VuPlus
             // Leave as is. This is handled by supplying image url to RecordingInfo
             throw new NotImplementedException();
         }
-
-        public Task<ImageStream> GetLiveTvChannelsAsync(string recordingId, CancellationToken cancellationToken)
-        {
-            // Leave as is. This is handled by supplying image url to RecordingInfo
-            throw new NotImplementedException();
-        }
-        
 
     }
 }
