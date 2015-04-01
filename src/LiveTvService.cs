@@ -1180,7 +1180,26 @@ namespace MediaBrowser.Plugins.VuPlus
             {
                 Id = _liveStreams.ToString(CultureInfo.InvariantCulture),
                 Path = streamUrl,
-                Protocol = MediaProtocol.Http
+                Protocol = MediaProtocol.Http,
+                MediaStreams = new List<MediaStream>
+                        {
+                            new MediaStream
+                            {
+                                Type = MediaStreamType.Video,
+                                // Set the index to -1 because we don't know the exact index of the video stream within the container
+                                Index = -1,
+
+                                // Set to true if unknown to enable deinterlacing
+                                IsInterlaced = true
+
+                            },
+                            new MediaStream
+                            {
+                                Type = MediaStreamType.Audio,
+                                // Set the index to -1 because we don't know the exact index of the audio stream within the container
+                                Index = -1
+                            }
+                        }
             };
             throw new ResourceNotFoundException(string.Format("Could not stream channel {0}", channelOid));
         }
