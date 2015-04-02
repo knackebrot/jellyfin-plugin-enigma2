@@ -669,7 +669,7 @@ namespace MediaBrowser.Plugins.VuPlus
                             recordingInfo.CommunityRating = 0;
 
                             Double sdated = Convert.ToDouble(e2time);
-                            DateTime sdate = new DateTime(1970, 1, 1, 0, 0, 0, 0); //Set default date 1/1/1970
+                            DateTime sdate = new DateTime(1970, 1, 1, 0, 0, 0, 0).ToUniversalTime(); //Set default date 1/1/1970
                             sdate = sdate.AddSeconds(sdated); //add seconds
                             recordingInfo.StartDate = sdate.ToUniversalTime();
 
@@ -679,7 +679,7 @@ namespace MediaBrowser.Plugins.VuPlus
                             Double seconds = Convert.ToDouble(words[1]);
 
                             Double edated = Convert.ToDouble(e2time) + (mins * 60) + (seconds);
-                            DateTime edate = new DateTime(1970, 1, 1, 0, 0, 0, 0); //Set default date 1/1/1970
+                            DateTime edate = new DateTime(1970, 1, 1, 0, 0, 0, 0).ToUniversalTime(); //Set default date 1/1/1970
                             edate = edate.AddSeconds(edated); //add seconds
                             recordingInfo.EndDate = edate.ToUniversalTime();
 
@@ -1096,7 +1096,7 @@ namespace MediaBrowser.Plugins.VuPlus
                                 timerInfo.ChannelId = e2servicereference;
 
                                 Double edated = Convert.ToDouble(e2timeend);
-                                DateTime edate = new DateTime(1970, 1, 1, 0, 0, 0, 0); //Set default date 1/1/1970
+                                DateTime edate = new DateTime(1970, 1, 1, 0, 0, 0, 0).ToUniversalTime(); //Set default date 1/1/1970
                                 edate = edate.AddSeconds(edated); //add seconds
                                 timerInfo.EndDate = edate.ToUniversalTime();
 
@@ -1113,7 +1113,7 @@ namespace MediaBrowser.Plugins.VuPlus
                                 timerInfo.SeriesTimerId = null;
 
                                 Double sdated = Convert.ToDouble(e2timebegin);
-                                DateTime sdate = new DateTime(1970, 1, 1, 0, 0, 0, 0); //Set default date 1/1/1970
+                                DateTime sdate = new DateTime(1970, 1, 1, 0, 0, 0, 0).ToUniversalTime(); //Set default date 1/1/1970
                                 sdate = sdate.AddSeconds(sdated); //add seconds
                                 timerInfo.StartDate = sdate.ToUniversalTime();
                                 if (e2state == "0")
@@ -1419,7 +1419,7 @@ namespace MediaBrowser.Plugins.VuPlus
                             }
 
                             Double sdated = Convert.ToDouble(e2eventstart);
-                            DateTime sdate = new DateTime(1970, 1, 1, 0, 0, 0, 0); //Set default date 1/1/1970
+                            DateTime sdate = new DateTime(1970, 1, 1, 0, 0, 0, 0).ToUniversalTime(); //Set default date 1/1/1970
                             sdate = sdate.AddSeconds(sdated); //add seconds
 
                             // Check whether the current element is within the time range passed
@@ -1463,7 +1463,7 @@ namespace MediaBrowser.Plugins.VuPlus
                                 programInfo.Overview = e2eventdescriptionextended;
 
                                 Double edated = Convert.ToDouble(e2eventstart) + Convert.ToDouble(e2eventduration);
-                                DateTime edate = new DateTime(1970, 1, 1, 0, 0, 0, 0); //Set default date 1/1/1970
+                                DateTime edate = new DateTime(1970, 1, 1, 0, 0, 0, 0).ToUniversalTime(); //Set default date 1/1/1970
                                 edate = edate.AddSeconds(edated); //add seconds
 
                                 programInfo.StartDate = sdate.ToUniversalTime();
