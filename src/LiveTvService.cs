@@ -1092,9 +1092,8 @@ namespace MediaBrowser.Plugins.VuPlus
 
                                 timerInfo.ChannelId = e2servicereference;
 
-                                Double edated = Convert.ToDouble(e2timeend);
-                                DateTime edate = new DateTime(1970, 1, 1, 0, 0, 0, 0).ToUniversalTime(); //Set default date 1/1/1970
-                                edate = edate.AddSeconds(edated); //add seconds
+                                long edated = Int64.Parse(e2timeend);
+                                DateTime edate = ApiHelper.DateTimeFromUnixTimestampSeconds(edated);
                                 timerInfo.EndDate = edate.ToUniversalTime();
 
                                 timerInfo.Id = e2servicereference + "~" + e2eit + "~" + e2timebegin + "~" + e2timeend + "~" + count;
@@ -1109,10 +1108,10 @@ namespace MediaBrowser.Plugins.VuPlus
                                 timerInfo.ProgramId = null;
                                 timerInfo.SeriesTimerId = null;
 
-                                Double sdated = Convert.ToDouble(e2timebegin);
-                                DateTime sdate = new DateTime(1970, 1, 1, 0, 0, 0, 0).ToUniversalTime(); //Set default date 1/1/1970
-                                sdate = sdate.AddSeconds(sdated); //add seconds
+                                long sdated = Int64.Parse(e2timebegin);
+                                DateTime sdate = ApiHelper.DateTimeFromUnixTimestampSeconds(sdated);
                                 timerInfo.StartDate = sdate.ToUniversalTime();
+
                                 if (e2state == "0")
                                     timerInfo.Status = RecordingStatus.Scheduled;
                                 if (e2state == "2")
