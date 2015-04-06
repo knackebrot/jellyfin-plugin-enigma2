@@ -668,19 +668,16 @@ namespace MediaBrowser.Plugins.VuPlus
 
                             recordingInfo.CommunityRating = 0;
 
-                            Double sdated = Convert.ToDouble(e2time);
-                            DateTime sdate = new DateTime(1970, 1, 1, 0, 0, 0, 0).ToUniversalTime(); //Set default date 1/1/1970
-                            sdate = sdate.AddSeconds(sdated); //add seconds
+                            long sdated = Int64.Parse(e2time);
+                            DateTime sdate = ApiHelper.DateTimeFromUnixTimestampSeconds(sdated);
                             recordingInfo.StartDate = sdate.ToUniversalTime();
 
                             //length in format mm:ss
                             string[] words = e2length.Split(':');
-                            Double mins = Convert.ToDouble(words[0]);
-                            Double seconds = Convert.ToDouble(words[1]);
-
-                            Double edated = Convert.ToDouble(e2time) + (mins * 60) + (seconds);
-                            DateTime edate = new DateTime(1970, 1, 1, 0, 0, 0, 0).ToUniversalTime(); //Set default date 1/1/1970
-                            edate = edate.AddSeconds(edated); //add seconds
+                            long mins = Int64.Parse(words[0]);
+                            long seconds = Int64.Parse(words[1]);
+                            long edated = Int64.Parse(e2time) + (mins * 60) + (seconds);
+                            DateTime edate = ApiHelper.DateTimeFromUnixTimestampSeconds(edated);
                             recordingInfo.EndDate = edate.ToUniversalTime();
 
                             //recordingInfo.EpisodeTitle = e2title;
@@ -1365,7 +1362,7 @@ namespace MediaBrowser.Plugins.VuPlus
 
                         XmlNodeList e2event = xml.GetElementsByTagName("e2event");
                         foreach (XmlNode xmlNode in e2event)
-                        {
+                        {                          
                             var programInfo = new ProgramInfo();
 
                             var e2eventid = "?";
@@ -1418,9 +1415,8 @@ namespace MediaBrowser.Plugins.VuPlus
                                 }
                             }
 
-                            Double sdated = Convert.ToDouble(e2eventstart);
-                            DateTime sdate = new DateTime(1970, 1, 1, 0, 0, 0, 0).ToUniversalTime(); //Set default date 1/1/1970
-                            sdate = sdate.AddSeconds(sdated); //add seconds
+                            long sdated = Int64.Parse(e2eventstart);
+                            DateTime sdate = ApiHelper.DateTimeFromUnixTimestampSeconds(sdated);
 
                             // Check whether the current element is within the time range passed
                             if (sdate > endDateUtc)
@@ -1462,9 +1458,8 @@ namespace MediaBrowser.Plugins.VuPlus
 
                                 programInfo.Overview = e2eventdescriptionextended;
 
-                                Double edated = Convert.ToDouble(e2eventstart) + Convert.ToDouble(e2eventduration);
-                                DateTime edate = new DateTime(1970, 1, 1, 0, 0, 0, 0).ToUniversalTime(); //Set default date 1/1/1970
-                                edate = edate.AddSeconds(edated); //add seconds
+                                long edated = Int64.Parse(e2eventstart) + Int64.Parse(e2eventduration);
+                                DateTime edate = ApiHelper.DateTimeFromUnixTimestampSeconds(edated);
 
                                 programInfo.StartDate = sdate.ToUniversalTime();
                                 programInfo.EndDate = edate.ToUniversalTime();
