@@ -4,122 +4,117 @@
     <title>Vu+</title>
 </head>
 <body>
-    <div data-role="page" class="page type-interior pluginConfigurationPage VuPlusConfigurationPage">
+    <div data-role="page" class="page type-interior pluginConfigurationPage VuPlusConfigurationPage" data-require="emby-button,emby-checkbox,emby-input">
 
         <div data-role="content">
             <div class="content-primary">
+
+                <h1>VuPlus</h1>
+
                 <form class="VuPlusConfigurationForm">
 
-                    <ul class="ulForm" data-role="listview">
-                        <li>
-                            <label for="txtHostName">Vu+ hostname or ip address:</label>
-                            <input type="text" id="txtHostName" name="txtHostName" />
-                            <div class="fieldDescription">
-                                The host name (address) or ip address of your receiver
-                            </div>
-                        </li>
-                        <li>
-                            <label for="txtStreamingPort">Vu+ streaming port:</label>
-                            <input type="text" id="txtStreamingPort" name="txtStreamingPort" />
-                            <div class="fieldDescription">
-                                The Streaming port of your receiver eg. 8001
-                            </div>
-                        </li>
-                        <li>
-                            <label for="txtWebInterfacePort">Vu+ Web Interface port:</label>
-                            <input type="text" id="txtWebInterfacePort" name="txtWebInterfacePort" />
-                            <div class="fieldDescription">
-                                The web Interface port of your receiver eg. 8000
-                            </div>
-                        </li>
-                        <li>
-                            <label for="txtWebInterfaceUsername">Vu+ Web Interface username:</label>
-                            <input type="text" id="txtWebInterfaceUsername" name="txtWebInterfaceUsername" />
-                            <div class="fieldDescription">
-                                The web Interface username of your receiver (optional)
-                            </div>
-                        </li>
-                        <li>
-                            <label for="txtWebInterfacePassword">Vu+ Web Interface password:</label>
-                            <input type="text" id="txtWebInterfacePassword" name="txtWebInterfacePassword" />
-                            <div class="fieldDescription">
-                                The web Interface password of your receiver (optional)
-                            </div>
-                        </li>
+                    <div class="inputContainer">
+                        <input is="emby-input" id="txtHostName" type="text" label="Vu+ hostname or ip address:" />
+                        <div class="fieldDescription">
+                            The host name (address) or ip address of your receiver
+                        </div>
+                    </div>
+                    <div class="inputContainer">
+                        <input is="emby-input" id="txtStreamingPort" type="text" label="Vu+ streaming port:" />
+                        <div class="fieldDescription">
+                            The Streaming port of your receiver eg. 8001
+                        </div>
+                    </div>
+                    <div class="inputContainer">
+                        <input is="emby-input" id="txtWebInterfacePort" type="text" label="Vu+ Web Interface port:" />
+                        <div class="fieldDescription">
+                            The web Interface port of your receiver eg. 8000
+                        </div>
+                    </div>
+                    <div class="inputContainer">
+                        <input is="emby-input" id="txtWebInterfaceUsername" type="text" label="Vu+ Web Interface username:" />
+                        <div class="fieldDescription">
+                            The web Interface username of your receiver (optional)
+                        </div>
+                    </div>
+                    <div class="inputContainer">
+                        <input is="emby-input" id="txtWebInterfacePassword" type="text" label="Vu+ Web Interface password:" />
+                        <div class="fieldDescription">
+                            The web Interface password of your receiver (optional)
+                        </div>
+                    </div>
 
-                        <li>
-                            <label for="chkUseSecureHTTPS">Use secure HTTP (HTTPS)</label>
-                            <input type="checkbox" id="chkUseSecureHTTPS" data-mini="true" />
-                            <div class="fieldDescription">
-                                Use HTTPS to connect to your receiver
-                            </div>
-                        </li>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="chkUseSecureHTTPS" />
+                            <span>Use secure HTTP (HTTPS)</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Use HTTPS to connect to your receiver
+                        </div>
+                    </div>
 
-
-                        <li>
-                            <label for="chkOnlyOneBouquet">Fetch Only one TV bouquet</label>
-                            <input type="checkbox" id="chkOnlyOneBouquet" data-mini="true" />
-                            <div class="fieldDescription">
-                                Limit channels to only those contained within the specified TV Bouquet below (optional)
-                            </div>
-                        </li>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="chkOnlyOneBouquet" />
+                            <span>Fetch Only one TV bouquet</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Limit channels to only those contained within the specified TV Bouquet below (optional)
+                        </div>
+                    </div>
 
 
-                        <li>
-                            <label for="txtTVBouquet">Vu+ TVBouquet:</label>
-                            <input type="text" id="txtTVBouquet" name="txtTVBouquet" />
-                            <div class="fieldDescription">
-                                The TV Bouquet to load channels for (optional)
-                            </div>
+                    <div class="inputContainer">
+                        <input is="emby-input" id="txtTVBouquet" type="text" label="Vu+ TVBouquet:" />
+                        <div class="fieldDescription">
+                            The TV Bouquet to load channels for (optional)
+                        </div>
+                    </div>
 
-                        </li>
-                        
-                        <li>
-                            <label for="chkZapToChannel">Zap before Channel switch (single tuner)</label>
-                            <input type="checkbox" id="chkZapToChannel" data-mini="true" />
-                            <div class="fieldDescription">
-                                Set if only one tuner within receiver
-                            </div>
-                        </li>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="chkZapToChannel" />
+                            <span>Zap before Channel switch (single tuner)</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Set if only one tuner within receiver
+                        </div>
+                    </div>
 
-
-
-                        <li>
-                            <label for="chkFetchPiconsFromWebInterface">Fetch picons from webinterface</label>
-                            <input type="checkbox" id="chkFetchPiconsFromWebInterface" data-mini="true" />
-                            <div class="fieldDescription">
-                                Set if you want to retrieve Picons from the web interface of the receiver 
-                            </div>
-                        </li>
-
-
-                        <li>
-                            <label for="txtPiconsPath">Picons Path:</label>
-                            <input type="text" id="txtPiconsPath" name="txtPiconsPath" />
-                            <div class="fieldDescription">
-                                The local location of your Picons eg. C:\Picons\ (optional)
-                            </div>
-                        </li>
-
-                        <li>
-                            <label for="txtRecordingPath">Recording Path:</label>
-                            <input type="text" id="txtRecordingPath" name="txtRecordingPath" />
-                            <div class="fieldDescription">
-                                The location to store your recordings on your receiver eg. /hdd/movie/ (optional)
-                            </div>
-                        </li>
-
-                        <li>
-                            <label for="chkDebugLogging">Enable VuPlus debug logging</label>
-                            <input type="checkbox" id="chkDebugLogging" data-mini="true" />
-                        </li>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="chkFetchPiconsFromWebInterface" />
+                            <span>Fetch picons from webinterface</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Set if you want to retrieve Picons from the web interface of the receiver
+                        </div>
+                    </div>
 
 
-                        <li>
-                            <button type="submit" data-theme="b">Save</button>
-                            <button type="button" onclick="history.back();">Cancel</button>
-                        </li>
-                    </ul>
+                    <div class="inputContainer">
+                        <input is="emby-input" id="txtPiconsPath" type="text" label="Picons Path:" />
+                        <div class="fieldDescription">
+                            The local location of your Picons eg. C:\Picons\ (optional)
+                        </div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <input is="emby-input" id="txtRecordingPath" type="text" label="Recording Path:" />
+                        <div class="fieldDescription">
+                            The location to store your recordings on your receiver eg. /hdd/movie/ (optional)
+                        </div>
+                    </div>
+
+                    <label class="checkboxContainer">
+                        <input is="emby-checkbox" type="checkbox" id="chkDebugLogging" />
+                        <span>Enable VuPlus debug logging</span>
+                    </label>
+
+                    <div>
+                        <button is="emby-button" type="submit" class="raised button-submit block"><span>Save</span></button>
+                    </div>
 
                 </form>
             </div>
@@ -130,7 +125,7 @@
 
             var VuPlusConfigurationPage = {
                 pluginUniqueId: "9564ac10-af23-39bc-449f-624f23cfa48f"
-             };
+            };
 
             $('.VuPlusConfigurationPage').on('pageshow', function (event) {
 
@@ -138,7 +133,7 @@
 
                 var page = this;
 
-                ApiClient.getPluginConfiguration(VuPlusConfigurationPage.pluginUniqueId).done(function (config) {
+                ApiClient.getPluginConfiguration(VuPlusConfigurationPage.pluginUniqueId).then(function (config) {
 
                     $('#txtHostName', page).val(config.HostName || "");
                     $('#txtStreamingPort', page).val(config.StreamingPort || "");
@@ -152,7 +147,7 @@
                     $('#chkFetchPiconsFromWebInterface', page).checked(config.FetchPiconsFromWebInterface || false).checkboxradio("refresh");
                     $('#txtPiconsPath', page).val(config.PiconsPath || "");
 
-                    $('#txtRecordingPath', page).val(config.RecordingPath || "");                   
+                    $('#txtRecordingPath', page).val(config.RecordingPath || "");
 
                     $('#chkDebugLogging', page).checked(config.EnableDebugLogging || false).checkboxradio("refresh");
 
@@ -166,7 +161,7 @@
 
                 var form = this;
 
-                ApiClient.getPluginConfiguration(VuPlusConfigurationPage.pluginUniqueId).done(function (config) {
+                ApiClient.getPluginConfiguration(VuPlusConfigurationPage.pluginUniqueId).then(function (config) {
 
                     //reset TV bouquet reference if TV Bouquet changed
                     //if (config.TVBouquet != $('#txtTVBouquet', form).val()) {
@@ -175,8 +170,8 @@
 
                     //reset TV bouquet reference if Only 1 Bouquet not set
                     //if ($('#chkOnlyOneBouquet', form).checked()) {
-                    //} 
-                    //else 
+                    //}
+                    //else
                     //{
                     //    config.tvBouquetSRef = '';
                     //}
@@ -197,7 +192,7 @@
 
                     config.EnableDebugLogging = $('#chkDebugLogging', form).checked();
 
-                    ApiClient.updatePluginConfiguration(VuPlusConfigurationPage.pluginUniqueId, config).done(Dashboard.processPluginConfigurationUpdateResult);
+                    ApiClient.updatePluginConfiguration(VuPlusConfigurationPage.pluginUniqueId, config).then(Dashboard.processPluginConfigurationUpdateResult);
                 });
 
                 // Disable default form submission
