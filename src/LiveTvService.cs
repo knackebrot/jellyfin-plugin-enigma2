@@ -1113,7 +1113,7 @@ namespace MediaBrowser.Plugins.VuPlus
                                 timerInfo.StartDate = sdate.ToUniversalTime();
 
                                 if (e2state == "0")
-                                    timerInfo.Status = RecordingStatus.Scheduled;
+                                    timerInfo.Status = RecordingStatus.New;
                                 if (e2state == "2")
                                     timerInfo.Status = RecordingStatus.InProgress;
 
