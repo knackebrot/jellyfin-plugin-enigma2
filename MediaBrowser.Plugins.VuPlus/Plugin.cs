@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
@@ -37,6 +38,12 @@ namespace MediaBrowser.Plugins.VuPlus
             {
                 return "Provides live tv using Vu+ / Enigma2 pvr as a back-end.";
             }
+        }
+
+        private Guid _id = new Guid("9564ac10-af23-39bc-449f-624f23cfa48f");
+        public override Guid Id
+        {
+            get { return _id; }
         }
 
         /// <summary>
