@@ -17,7 +17,7 @@ using MediaBrowser.Controller.Entities;
 
 namespace MediaBrowser.Plugins.VuPlus
 {
-    public class RecordingsChannel : IChannel, IHasCacheKey, ISupportsDelete, ISupportsLatestMedia
+    public class RecordingsChannel : IChannel, IHasCacheKey, ISupportsDelete, ISupportsLatestMedia, ISupportsMediaProbe
     {
         public ILiveTvManager _liveTvManager;
 
@@ -244,7 +244,6 @@ namespace MediaBrowser.Plugins.VuPlus
                 DateModified = item.DateLastUpdated,
                 Overview = item.Overview,
                 //People = item.People
-                EnableMediaProbe = true,
                 IsLiveStream = item.Status == Model.LiveTv.RecordingStatus.InProgress,
                 Etag = item.Status.ToString()
             };
