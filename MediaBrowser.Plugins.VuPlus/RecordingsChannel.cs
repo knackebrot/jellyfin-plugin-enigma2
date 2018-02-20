@@ -18,7 +18,7 @@ using MediaBrowser.Model.LiveTv;
 
 namespace MediaBrowser.Plugins.VuPlus
 {
-    public class RecordingsChannel : IChannel, IHasCacheKey, ISupportsDelete, ISupportsLatestMedia, ISupportsMediaProbe
+    public class RecordingsChannel : IChannel, IHasCacheKey, ISupportsDelete, ISupportsLatestMedia, ISupportsMediaProbe, IHasFolderAttributes
     {
         public ILiveTvManager _liveTvManager;
 
@@ -32,6 +32,14 @@ namespace MediaBrowser.Plugins.VuPlus
             get
             {
                 return "VuPlus Recordings";
+            }
+        }
+
+        public string[] Attributes
+        {
+            get
+            {
+                return new[] { "Recordings" };
             }
         }
 
