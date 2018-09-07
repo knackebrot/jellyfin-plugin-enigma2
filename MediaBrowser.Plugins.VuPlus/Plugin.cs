@@ -5,13 +5,15 @@ using MediaBrowser.Common.Plugins;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
 using MediaBrowser.Plugins.VuPlus.Configuration;
+using System.IO;
+using MediaBrowser.Model.Drawing;
 
 namespace MediaBrowser.Plugins.VuPlus
 {
     /// <summary>
     /// Class Plugin
     /// </summary>
-    public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
+    public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages, IHasThumbImage
     {
         public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer)
             : base(applicationPaths, xmlSerializer)
@@ -62,6 +64,20 @@ namespace MediaBrowser.Plugins.VuPlus
                     EmbeddedResourcePath = "MediaBrowser.Plugins.VuPlus.Configuration.configPage.html"
                 }
             };
+        }
+
+        public Stream GetThumbImage()
+        {
+            var type = GetType();
+            return type.Assembly.GetManifestResourceStream(type.Namespace + ".Images.thumb.png");
+        }
+
+        public ImageFormat ThumbImageFormat
+        {
+            get
+            {
+                return ImageFormat.Png;
+            }
         }
     }
 }

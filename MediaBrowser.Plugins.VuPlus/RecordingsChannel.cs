@@ -71,7 +71,7 @@ namespace MediaBrowser.Plugins.VuPlus
 
         public string GetCacheKey(string userId)
         {
-            var now = DateTime.UtcNow;
+            var now = DateTimeOffset.UtcNow;
 
             var values = new List<string>();
 
@@ -113,7 +113,7 @@ namespace MediaBrowser.Plugins.VuPlus
             {
                 return Task.FromResult(new DynamicImageResponse
                 {
-                    Path = "https://github.com/CompoUK/MediaBrowser.Plugins.VuPlus/blob/master/src/Images/Vu+.png?raw=true",
+                    Path = "https://github.com/MediaBrowser/MediaBrowser.Plugins.VuPlus/raw/master/MediaBrowser.Plugins.VuPlus/Images/thumb.png",
                     Protocol = MediaProtocol.Http,
                     HasImage = true
                 });
@@ -157,7 +157,7 @@ namespace MediaBrowser.Plugins.VuPlus
         {
             var result = await GetChannelItems(new InternalChannelItemQuery(), i => true, cancellationToken).ConfigureAwait(false);
 
-            return result.Items.OrderByDescending(i => i.DateCreated ?? DateTime.MinValue);
+            return result.Items.OrderByDescending(i => i.DateCreated ?? DateTimeOffset.MinValue);
         }
 
         public Task<ChannelItemResult> GetChannelItems(InternalChannelItemQuery query, CancellationToken cancellationToken)
@@ -410,12 +410,12 @@ namespace MediaBrowser.Plugins.VuPlus
         /// <summary>
         /// The start date of the recording, in UTC.
         /// </summary>
-        public DateTime StartDate { get; set; }
+        public DateTimeOffset StartDate { get; set; }
 
         /// <summary>
         /// The end date of the recording, in UTC.
         /// </summary>
-        public DateTime EndDate { get; set; }
+        public DateTimeOffset EndDate { get; set; }
 
         /// <summary>
         /// Gets or sets the program identifier.
@@ -462,7 +462,7 @@ namespace MediaBrowser.Plugins.VuPlus
         /// Gets or sets the original air date.
         /// </summary>
         /// <value>The original air date.</value>
-        public DateTime? OriginalAirDate { get; set; }
+        public DateTimeOffset? OriginalAirDate { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether this instance is movie.
@@ -545,7 +545,7 @@ namespace MediaBrowser.Plugins.VuPlus
         /// Gets or sets the date last updated.
         /// </summary>
         /// <value>The date last updated.</value>
-        public DateTime DateLastUpdated { get; set; }
+        public DateTimeOffset DateLastUpdated { get; set; }
 
         public MyRecordingInfo()
         {

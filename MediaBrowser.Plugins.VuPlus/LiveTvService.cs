@@ -43,7 +43,7 @@ namespace MediaBrowser.Plugins.VuPlus
         private String tvBouquetSRef;
         List<ChannelInfo> tvChannelInfos = new List<ChannelInfo>();
 
-        public DateTime LastRecordingChange = DateTime.MinValue;
+        public DateTimeOffset LastRecordingChange = DateTimeOffset.MinValue;
 
         public LiveTvService(IHttpClient httpClient, IJsonSerializer jsonSerializer, ILogger logger)
         {
@@ -675,7 +675,7 @@ namespace MediaBrowser.Plugins.VuPlus
                             recordingInfo.CommunityRating = 0;
 
                             long sdated = Int64.Parse(e2time);
-                            DateTime sdate = ApiHelper.DateTimeFromUnixTimestampSeconds(sdated);
+                            var sdate = DateTimeOffset.FromUnixTimeSeconds(sdated);
                             recordingInfo.StartDate = sdate.ToUniversalTime();
 
                             //length in format mm:ss
@@ -683,7 +683,7 @@ namespace MediaBrowser.Plugins.VuPlus
                             long mins = Int64.Parse(words[0]);
                             long seconds = Int64.Parse(words[1]);
                             long edated = Int64.Parse(e2time) + (mins * 60) + (seconds);
-                            DateTime edate = ApiHelper.DateTimeFromUnixTimestampSeconds(edated);
+                            var edate = DateTimeOffset.FromUnixTimeSeconds(edated);
                             recordingInfo.EndDate = edate.ToUniversalTime();
 
                             //recordingInfo.EpisodeTitle = e2title;
@@ -1098,7 +1098,7 @@ namespace MediaBrowser.Plugins.VuPlus
                                 timerInfo.ChannelId = e2servicereference;
 
                                 long edated = Int64.Parse(e2timeend);
-                                DateTime edate = ApiHelper.DateTimeFromUnixTimestampSeconds(edated);
+                                var edate = DateTimeOffset.FromUnixTimeSeconds(edated);
                                 timerInfo.EndDate = edate.ToUniversalTime();
 
                                 timerInfo.Id = e2servicereference + "~" + e2eit + "~" + e2timebegin + "~" + e2timeend + "~" + count;
@@ -1114,7 +1114,7 @@ namespace MediaBrowser.Plugins.VuPlus
                                 timerInfo.SeriesTimerId = null;
 
                                 long sdated = Int64.Parse(e2timebegin);
-                                DateTime sdate = ApiHelper.DateTimeFromUnixTimestampSeconds(sdated);
+                                var sdate = DateTimeOffset.FromUnixTimeSeconds(sdated);
                                 timerInfo.StartDate = sdate.ToUniversalTime();
 
                                 if (e2state == "0")
@@ -1316,7 +1316,7 @@ namespace MediaBrowser.Plugins.VuPlus
         /// <param name="endDateUtc">end date/time</param>
         /// <param name="cancellationToken">The CancellationToken</param>
         /// <returns>IEnumerable<ProgramInfo></returns>
-        public async Task<IEnumerable<ProgramInfo>> GetProgramsAsync(string channelId, DateTime startDateUtc, DateTime endDateUtc, CancellationToken cancellationToken)
+        public async Task<IEnumerable<ProgramInfo>> GetProgramsAsync(string channelId, DateTimeOffset startDateUtc, DateTimeOffset endDateUtc, CancellationToken cancellationToken)
         {
             _logger.Info("[VuPlus] Start GetProgramsAsync");
             await EnsureConnectionAsync(cancellationToken).ConfigureAwait(false);
@@ -1420,7 +1420,7 @@ namespace MediaBrowser.Plugins.VuPlus
                             }
 
                             long sdated = Int64.Parse(e2eventstart);
-                            DateTime sdate = ApiHelper.DateTimeFromUnixTimestampSeconds(sdated);
+                            var sdate = DateTimeOffset.FromUnixTimeSeconds(sdated);
 
                             // Check whether the current element is within the time range passed
                             if (sdate > endDateUtc)
@@ -1463,7 +1463,7 @@ namespace MediaBrowser.Plugins.VuPlus
                                 programInfo.Overview = e2eventdescriptionextended;
 
                                 long edated = Int64.Parse(e2eventstart) + Int64.Parse(e2eventduration);
-                                DateTime edate = ApiHelper.DateTimeFromUnixTimestampSeconds(edated);
+                                var edate = DateTimeOffset.FromUnixTimeSeconds(edated);
 
                                 programInfo.StartDate = sdate.ToUniversalTime();
                                 programInfo.EndDate = edate.ToUniversalTime();
