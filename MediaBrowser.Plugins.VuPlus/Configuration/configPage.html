@@ -140,16 +140,16 @@
                     $('#txtWebInterfacePort', page).val(config.WebInterfacePort || "");
                     $('#txtWebInterfaceUsername', page).val(config.WebInterfaceUsername || "");
                     $('#txtWebInterfacePassword', page).val(config.WebInterfacePassword || "");
-                    $('#chkUseSecureHTTPS', page).checked(config.UseSecureHTTPS || false).checkboxradio("refresh");
-                    $('#chkOnlyOneBouquet', page).checked(config.OnlyOneBouquet || false).checkboxradio("refresh");
-                    $('#txtTVBouquet', page).val(config.TVBouquet || "");
-                    $('#chkZapToChannel', page).checked(config.ZapToChannel || false).checkboxradio("refresh");
-                    $('#chkFetchPiconsFromWebInterface', page).checked(config.FetchPiconsFromWebInterface || false).checkboxradio("refresh");
+                    page.querySelector('#chkUseSecureHTTPS').checked = config.UseSecureHTTPS || false;
+                    page.querySelector('#chkOnlyOneBouquet').checked = config.OnlyOneBouquet || false;
+                    page.querySelector('#txtTVBouquet', page).val(config.TVBouquet || "");
+                    page.querySelector('#chkZapToChannel').checked = config.ZapToChannel || false;
+                    page.querySelector('#chkFetchPiconsFromWebInterface').checked = config.FetchPiconsFromWebInterface || false;
                     $('#txtPiconsPath', page).val(config.PiconsPath || "");
 
                     $('#txtRecordingPath', page).val(config.RecordingPath || "");
 
-                    $('#chkDebugLogging', page).checked(config.EnableDebugLogging || false).checkboxradio("refresh");
+                    page.querySelector('#chkDebugLogging').checked = config.EnableDebugLogging || false;
 
                     Dashboard.hideLoadingMsg();
                 });
@@ -169,7 +169,7 @@
                     //}
 
                     //reset TV bouquet reference if Only 1 Bouquet not set
-                    //if ($('#chkOnlyOneBouquet', form).checked()) {
+                    //if (form.querySelector('#chkOnlyOneBouquet').checked) {
                     //}
                     //else
                     //{
@@ -181,16 +181,16 @@
                     config.WebInterfacePort = $('#txtWebInterfacePort', form).val();
                     config.WebInterfaceUsername = $('#txtWebInterfaceUsername', form).val();
                     config.WebInterfacePassword = $('#txtWebInterfacePassword', form).val();
-                    config.UseSecureHTTPS = $('#chkUseSecureHTTPS', form).checked();
-                    config.OnlyOneBouquet = $('#chkOnlyOneBouquet', form).checked();
+                    config.UseSecureHTTPS = form.querySelector('#chkUseSecureHTTPS').checked;
+                    config.OnlyOneBouquet = form.querySelector('#chkOnlyOneBouquet').checked;
                     config.TVBouquet = $('#txtTVBouquet', form).val();
-                    config.ZapToChannel = $('#chkZapToChannel', form).checked();
-                    config.FetchPiconsFromWebInterface = $('#chkFetchPiconsFromWebInterface', form).checked();
+                    config.ZapToChannel = form.querySelector('#chkZapToChannel').checked;
+                    config.FetchPiconsFromWebInterface = form.querySelector('#chkFetchPiconsFromWebInterface').checked;
                     config.PiconsPath = $('#txtPiconsPath', form).val();
 
                     config.RecordingPath = $('#txtRecordingPath', form).val();
 
-                    config.EnableDebugLogging = $('#chkDebugLogging', form).checked();
+                    config.EnableDebugLogging = form.querySelector('#chkDebugLogging').checked;
 
                     ApiClient.updatePluginConfiguration(VuPlusConfigurationPage.pluginUniqueId, config).then(Dashboard.processPluginConfigurationUpdateResult);
                 });
