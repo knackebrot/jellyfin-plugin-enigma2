@@ -1,6 +1,6 @@
 using MediaBrowser.Model.LiveTv;
 using System;
-using MediaBrowser.Model.Logging;
+using Microsoft.Extensions.Logging;
 
 namespace MediaBrowser.Plugins.VuPlus.Helpers
 {
@@ -32,7 +32,7 @@ namespace MediaBrowser.Plugins.VuPlus.Helpers
 
             if (enableDebugLogging)
             {
-                logger.Debug(message);
+                logger.LogDebug(message);
             }
         }
    
