@@ -1,0 +1,44 @@
+---
+# The name of the plugin; official plugins always start "jellyfin-plugin-"
+name: "jellyfin-plugin-vuplus"
+
+# The GUID of the plugin, found in Plugin.cs
+guid: "9564ac10-af23-39bc-449f-624f23cfa48f"
+
+# The version of the plugin, starting at 1. Note that the AssemblyVersion
+# and FileVersion flags in the `.csproj` file must have two additional
+# fiels, e.g. 1.0.0 to be built correctly.
+version: "3.1.8" # Please increment with each pull request
+
+# The supported Jellyfin version, usually the earliest binary-compatible
+# version. Based on the Jellyfin components from NuGet.
+targetAbi: "10.6.0" # The earliest binary-compatible version
+
+# The owner name of the plugin, "jellyfin" for official plugins. Change
+# to your own name if you wish to remain a 3rd-party plugin.
+owner: "knackebrot"
+
+# A short description of the plugin
+overview: "VU+"
+
+# A longer and more detailed description of the plugin; use multiple
+# lines as required for readability.
+description: >
+    Plugin for Jellyfin to allow it to view channels, browse epg, set and delete timers, play recordings etc.
+
+
+
+# The plugin category, in a general sense. These fields are dynamic.
+category: "Live TV"
+
+# A list of built artifacts to be bundled into the ZIP for installation.
+# Include the main output file, as well as any dependency `.dll`s that
+# might be required for the plugin to run.
+artifacts:
+  - "MediaBrowser.Plugins.VuPlus.dll"
+
+# Build information values for the build infrastructure; these should
+# not need to be changed usually.
+build_type: "dotnet"
+dotnet_configuration: "Release"
+dotnet_framework: "netstandard2.1"
