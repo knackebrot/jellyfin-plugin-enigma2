@@ -25,7 +25,7 @@ namespace MediaBrowser.Plugins.VuPlus.Helpers
 
     public static class UtilsHelper
     {
-        public static void DebugInformation(ILogger logger, string message)
+        public static void DebugInformation(ILogger<LiveTvService> logger, string message)
         {
             var config = Plugin.Instance.Configuration;
             bool enableDebugLogging = config.EnableDebugLogging;

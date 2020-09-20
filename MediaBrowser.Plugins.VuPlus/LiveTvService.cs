@@ -36,7 +36,7 @@ namespace MediaBrowser.Plugins.VuPlus
     {
         private readonly IHttpClient _httpClient;
         private readonly CultureInfo _usCulture = new CultureInfo("en-US");
-        private readonly ILogger _logger;
+        private readonly ILogger<LiveTvService> _logger;
         private int _liveStreams;
         private readonly Dictionary<int, int> _heartBeat = new Dictionary<int, int>();
 
@@ -45,7 +45,7 @@ namespace MediaBrowser.Plugins.VuPlus
 
         public DateTime LastRecordingChange = DateTime.MinValue;
 
-        public LiveTvService(IHttpClient httpClient, IJsonSerializer jsonSerializer, ILogger logger)
+        public LiveTvService(IHttpClient httpClient, IJsonSerializer jsonSerializer, ILogger<LiveTvService> logger)
         {
             _httpClient = httpClient;
             _logger = logger;

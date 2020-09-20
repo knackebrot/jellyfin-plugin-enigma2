@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;</TargetFrameworks>
+    <TargetFrameworks>netstandard2.1</TargetFrameworks>
     <AssemblyVersion>3.1.8</AssemblyVersion>
     <FileVersion>3.1.8</FileVersion>
   </PropertyGroup>
@@ -15,10 +15,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Jellyfin.Common" Version="10.3.7" />
-    <PackageReference Include="Jellyfin.Naming" Version="10.3.7" />
-    <PackageReference Include="Jellyfin.Controller" Version="10.3.7" />
-    <PackageReference Include="Jellyfin.Model" Version="10.3.7" />
+    <PackageReference Include="Jellyfin.Common" Version="10.6.0" />
+    <PackageReference Include="Jellyfin.Naming" Version="10.6.0" />
+    <PackageReference Include="Jellyfin.Controller" Version="10.6.0" />
+    <PackageReference Include="Jellyfin.Model" Version="10.6.0" />
   </ItemGroup>
 
 </Project>
