@@ -1,31 +1,24 @@
-﻿using MediaBrowser.Common.Extensions;
-using MediaBrowser.Common.Net;
-using MediaBrowser.Controller.Channels;
-using MediaBrowser.Controller.Drawing;
-using MediaBrowser.Controller.LiveTv;
-using MediaBrowser.Model.Dto;
-using MediaBrowser.Model.Entities;
-using Microsoft.Extensions.Logging;
-using MediaBrowser.Model.MediaInfo;
-using MediaBrowser.Model.Net;
-using MediaBrowser.Model.Serialization;
-
-using MediaBrowser.Plugins.VuPlus.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-
 using System.Xml;
+using MediaBrowser.Common.Extensions;
+using MediaBrowser.Common.Net;
+using MediaBrowser.Controller.Drawing;
+using MediaBrowser.Controller.LiveTv;
+using MediaBrowser.Model.Dto;
+using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.LiveTv;
-using System.Net;
-using MediaBrowser.Controller.Entities;
-using MediaBrowser.Common.Plugins;
-using MediaBrowser.Model.ApiClient;
+using MediaBrowser.Model.MediaInfo;
+using MediaBrowser.Plugins.VuPlus.Helpers;
+using Microsoft.Extensions.Logging;
 
 namespace MediaBrowser.Plugins.VuPlus
 {
@@ -34,21 +27,22 @@ namespace MediaBrowser.Plugins.VuPlus
     /// </summary>
     public class LiveTvService : ILiveTvService
     {
-        private readonly IHttpClient _httpClient;
         private readonly CultureInfo _usCulture = new CultureInfo("en-US");
         private readonly ILogger<LiveTvService> _logger;
         private int _liveStreams;
         private readonly Dictionary<int, int> _heartBeat = new Dictionary<int, int>();
 
-        private String tvBouquetSRef;
-        List<ChannelInfo> tvChannelInfos = new List<ChannelInfo>();
+        private string tvBouquetSRef;
+        private List<ChannelInfo> tvChannelInfos = new List<ChannelInfo>();
 
         public DateTime LastRecordingChange = DateTime.MinValue;
 
-        public LiveTvService(IHttpClient httpClient, IJsonSerializer jsonSerializer, ILogger<LiveTvService> logger)
+        private readonly HttpClient _httpClient;
+
+        public LiveTvService(ILogger<LiveTvService> logger, IHttpClientFactory httpClientFactory)
         {
-            _httpClient = httpClient;
             _logger = logger;
+            _httpClient = GetHttpClient(httpClientFactory);
         }
 
 
@@ -68,13 +62,23 @@ namespace MediaBrowser.Plugins.VuPlus
             _logger.LogInformation(string.Format("[VuPlus] EnsureConnectionAsync StreamingPort: {0}", config.StreamingPort));
             _logger.LogInformation(string.Format("[VuPlus] EnsureConnectionAsync WebInterfacePort: {0}", config.WebInterfacePort));
             if (string.IsNullOrEmpty(config.WebInterfaceUsername))
+            {
                 _logger.LogInformation("[VuPlus] EnsureConnectionAsync WebInterfaceUsername: ");
+            }
             else
+            {
                 _logger.LogInformation(string.Format("[VuPlus] EnsureConnectionAsync WebInterfaceUsername: {0}", "********"));
+            }
+
             if (string.IsNullOrEmpty(config.WebInterfacePassword))
+            {
                 _logger.LogInformation("[VuPlus] EnsureConnectionAsync WebInterfacePassword: ");
+            }
             else
+            {
                 _logger.LogInformation(string.Format("[VuPlus] EnsureConnectionAsync WebInterfaceUsername: {0}", "********"));
+            }
+
             _logger.LogInformation(string.Format("[VuPlus] EnsureConnectionAsync UseSecureHTTPS: {0}", config.UseSecureHTTPS));
             _logger.LogInformation(string.Format("[VuPlus] EnsureConnectionAsync OnlyOneBouquet: {0}", config.OnlyOneBouquet));
             _logger.LogInformation(string.Format("[VuPlus] EnsureConnectionAsync TVBouquet: {0}", config.TVBouquet));
@@ -131,11 +135,31 @@ namespace MediaBrowser.Plugins.VuPlus
             else
             {
                 // connect to VuPlus box to test connectivity.
-                String resultNotRequired = await InitiateSession(cancellationToken, null).ConfigureAwait(false);
+                var resultNotRequired = await InitiateSession(cancellationToken, null).ConfigureAwait(false);
                 tvBouquetSRef = null;
             }
         }
 
+        /// <summary>
+        /// Creates HttpClient for connection to Enigma2
+        /// </summary>
+        /// <param name="httpClientFactory"></param>
+        /// <returns></returns>
+        private HttpClient GetHttpClient(IHttpClientFactory httpClientFactory)
+        {
+            var httpClient = httpClientFactory.CreateClient(NamedClient.Default);
+            httpClient.DefaultRequestHeaders.UserAgent.Add(
+                new ProductInfoHeaderValue(Name, Plugin.Instance.Version.ToString()));
+
+            if (!string.IsNullOrEmpty(Plugin.Instance.Configuration.WebInterfaceUsername))
+            {
+                var authInfo = Plugin.Instance.Configuration.WebInterfaceUsername + ":" + Plugin.Instance.Configuration.WebInterfacePassword;
+                authInfo = Convert.ToBase64String(Encoding.Default.GetBytes(authInfo));
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", authInfo);
+            }
+
+            return httpClient;
+        }
 
         /// <summary>
         /// Checks connection to VuPlus and retrieves service reference for channel if only one bouquet.
@@ -143,38 +167,27 @@ namespace MediaBrowser.Plugins.VuPlus
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="tvBouquet">The TV Bouquet.</param>
         /// <returns>Task{String>}.</returns>
-        public async Task<String> InitiateSession(CancellationToken cancellationToken, String tvBouquet)
+        public async Task<string> InitiateSession(CancellationToken cancellationToken, string tvBouquet)
         {
             _logger.LogInformation("[VuPlus] Start InitiateSession, validates connection and returns Bouquet reference if required");
             //await EnsureConnectionAsync(cancellationToken).ConfigureAwait(false);
 
             var protocol = "http";
             if (Plugin.Instance.Configuration.UseSecureHTTPS)
+            {
                 protocol = "https";
+            }
 
             var baseUrl = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
 
             var url = string.Format("{0}/web/getservices", baseUrl);
             UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] InitiateSession url: {0}", url));
 
-            var options = new HttpRequestOptions
+            using (var stream = await _httpClient.GetStreamAsync(url, cancellationToken).ConfigureAwait(false))
             {
-                CancellationToken = cancellationToken,
-                Url = url,
-            };
-
-            if (!string.IsNullOrEmpty(Plugin.Instance.Configuration.WebInterfaceUsername))
-            {
-                string authInfo = Plugin.Instance.Configuration.WebInterfaceUsername + ":" + Plugin.Instance.Configuration.WebInterfacePassword;
-                authInfo = Convert.ToBase64String(Encoding.Default.GetBytes(authInfo));
-                options.RequestHeaders["Authorization"] = "Basic " + authInfo;
-            }
-
-            using (var stream = await _httpClient.Get(options).ConfigureAwait(false))
-            {
-                using (StreamReader reader = new StreamReader(stream))
+                using (var reader = new StreamReader(stream))
                 {
-                    string xmlResponse = reader.ReadToEnd();
+                    var xmlResponse = reader.ReadToEnd();
                     UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] InitiateSession response: {0}", xmlResponse));
 
                     try
@@ -182,9 +195,9 @@ namespace MediaBrowser.Plugins.VuPlus
                         var xml = new XmlDocument();
                         xml.LoadXml(xmlResponse);
 
-                        String tvBouquetReference = null;
+                        string tvBouquetReference = null;
 
-                        XmlNodeList e2services = xml.GetElementsByTagName("e2service");
+                        var e2services = xml.GetElementsByTagName("e2service");
 
                         // If TV Bouquet passed find associated service reference
                         if (!string.IsNullOrEmpty(tvBouquet))
@@ -246,7 +259,9 @@ namespace MediaBrowser.Plugins.VuPlus
 
             var protocol = "http";
             if (Plugin.Instance.Configuration.UseSecureHTTPS)
+            {
                 protocol = "https";
+            }
 
             var baseUrl = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
 
@@ -264,28 +279,17 @@ namespace MediaBrowser.Plugins.VuPlus
 
             UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetChannelsAsync url: {0}", url));
 
-            var options = new HttpRequestOptions
-            {
-                CancellationToken = cancellationToken,
-                Url = url,
-                UserAgent = "vuplus-pvraddon-agent/1.0"
-            };
-
             if (!string.IsNullOrEmpty(Plugin.Instance.Configuration.WebInterfaceUsername))
             {
-                string authInfo = Plugin.Instance.Configuration.WebInterfaceUsername + ":" + Plugin.Instance.Configuration.WebInterfacePassword;
-                authInfo = Convert.ToBase64String(Encoding.Default.GetBytes(authInfo));
-                options.RequestHeaders["Authorization"] = "Basic " + authInfo;
-
                 baseUrlPicon = protocol + "://" + Plugin.Instance.Configuration.WebInterfaceUsername + ":" + Plugin.Instance.Configuration.WebInterfacePassword + "@" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
             }
 
-            using (var stream = await _httpClient.Get(options).ConfigureAwait(false))
+            using (var stream = await _httpClient.GetStreamAsync(url, cancellationToken).ConfigureAwait(false))
             {
-                using (StreamReader reader = new StreamReader(stream))
+                using (var reader = new StreamReader(stream))
                 {
 
-                    string xmlResponse = reader.ReadToEnd();
+                    var xmlResponse = reader.ReadToEnd();
                     UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetChannelsAsync response: {0}", xmlResponse));
 
                     try
@@ -293,14 +297,14 @@ namespace MediaBrowser.Plugins.VuPlus
                         var xml = new XmlDocument();
                         xml.LoadXml(xmlResponse);
 
-                        List<ChannelInfo> channelInfos = new List<ChannelInfo>();
+                        var channelInfos = new List<ChannelInfo>();
 
                         if (string.IsNullOrEmpty(tvBouquetSRef))
                         {
                             // Load channels from all TV Bouquets
                             _logger.LogInformation("[VuPlus] GetChannelsAsync for all TV Bouquets");
 
-                            XmlNodeList e2services = xml.GetElementsByTagName("e2service");
+                            var e2services = xml.GetElementsByTagName("e2service");
                             foreach (XmlNode xmlNode in e2services)
                             {
                                 var channelInfo = new ChannelInfo();
@@ -320,7 +324,7 @@ namespace MediaBrowser.Plugins.VuPlus
                                 }
 
                                 // get all channels for TV Bouquet
-                                List<ChannelInfo> channelInfosForBouquet = await GetChannelsForTVBouquetAsync(cancellationToken, e2servicereference).ConfigureAwait(false);
+                                var channelInfosForBouquet = await GetChannelsForTVBouquetAsync(cancellationToken, e2servicereference).ConfigureAwait(false);
 
                                 // store all channels for TV Bouquet
                                 channelInfos.AddRange(channelInfosForBouquet);
@@ -331,9 +335,9 @@ namespace MediaBrowser.Plugins.VuPlus
                         else
                         {
                             // Load channels for specified TV Bouquet only
-                            int count = 1;
+                            var count = 1;
 
-                            XmlNodeList e2services = xml.GetElementsByTagName("e2service");
+                            var e2services = xml.GetElementsByTagName("e2service");
                             foreach (XmlNode xmlNode in e2services)
                             {
                                 var channelInfo = new ChannelInfo();
@@ -358,9 +362,13 @@ namespace MediaBrowser.Plugins.VuPlus
                                 {
                                     //check for radio channel
                                     if (e2servicereference.ToUpper().Contains("RADIO"))
+                                    {
                                         channelInfo.ChannelType = ChannelType.Radio;
+                                    }
                                     else
+                                    {
                                         channelInfo.ChannelType = ChannelType.TV;
+                                    }
 
                                     channelInfo.HasImage = true;
                                     channelInfo.Id = e2servicereference;
@@ -414,15 +422,18 @@ namespace MediaBrowser.Plugins.VuPlus
         /// Gets the channels async.
         /// </summary>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="sRef">Service reference</param>
         /// <returns>Task{List<ChannelInfo>}.</returns>
-        public async Task<List<ChannelInfo>> GetChannelsForTVBouquetAsync(CancellationToken cancellationToken, String sRef)
+        public async Task<List<ChannelInfo>> GetChannelsForTVBouquetAsync(CancellationToken cancellationToken, string sRef)
         {
             _logger.LogInformation("[VuPlus] Start GetChannelsForTVBouquetAsync, retrieve all channels for TV Bouquet " + sRef);
             await EnsureConnectionAsync(cancellationToken).ConfigureAwait(false);
 
             var protocol = "http";
             if (Plugin.Instance.Configuration.UseSecureHTTPS)
+            {
                 protocol = "https";
+            }
 
             var baseUrl = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
 
@@ -432,28 +443,16 @@ namespace MediaBrowser.Plugins.VuPlus
 
             UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetChannelsForTVBouquetAsync url: {0}", url));
 
-            var options = new HttpRequestOptions
-            {
-                CancellationToken = cancellationToken,
-                Url = url,
-                UserAgent = "vuplus-pvraddon-agent/1.0"
-            };
-
             if (!string.IsNullOrEmpty(Plugin.Instance.Configuration.WebInterfaceUsername))
             {
-                string authInfo = Plugin.Instance.Configuration.WebInterfaceUsername + ":" + Plugin.Instance.Configuration.WebInterfacePassword;
-                authInfo = Convert.ToBase64String(Encoding.Default.GetBytes(authInfo));
-                options.RequestHeaders["Authorization"] = "Basic " + authInfo;
-
                 baseUrlPicon = protocol + "://" + Plugin.Instance.Configuration.WebInterfaceUsername + ":" + Plugin.Instance.Configuration.WebInterfacePassword + "@" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
-
             }
 
-            using (var stream = await _httpClient.Get(options).ConfigureAwait(false))
+            using (var stream = await _httpClient.GetStreamAsync(url, cancellationToken).ConfigureAwait(false))
             {
-                using (StreamReader reader = new StreamReader(stream))
+                using (var reader = new StreamReader(stream))
                 {
-                    string xmlResponse = reader.ReadToEnd();
+                    var xmlResponse = reader.ReadToEnd();
                     UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetChannelsForTVBouquetAsync response: {0}", xmlResponse));
 
                     try
@@ -461,13 +460,13 @@ namespace MediaBrowser.Plugins.VuPlus
                         var xml = new XmlDocument();
                         xml.LoadXml(xmlResponse);
 
-                        List<ChannelInfo> channelInfos = new List<ChannelInfo>();
+                        var channelInfos = new List<ChannelInfo>();
 
                         // Load channels for specified TV Bouquet only
 
-                        int count = 1;
+                        var count = 1;
 
-                        XmlNodeList e2services = xml.GetElementsByTagName("e2service");
+                        var e2services = xml.GetElementsByTagName("e2service");
                         foreach (XmlNode xmlNode in e2services)
                         {
                             var channelInfo = new ChannelInfo();
@@ -492,9 +491,13 @@ namespace MediaBrowser.Plugins.VuPlus
                             {
                                 //check for radio channel
                                 if (e2servicereference.Contains("radio"))
+                                {
                                     channelInfo.ChannelType = ChannelType.Radio;
+                                }
                                 else
+                                {
                                     channelInfo.ChannelType = ChannelType.TV;
+                                }
 
                                 channelInfo.HasImage = true;
                                 channelInfo.Id = e2servicereference;
@@ -522,7 +525,7 @@ namespace MediaBrowser.Plugins.VuPlus
                                 channelInfo.Number = count.ToString();
 
                                 channelInfos.Add(channelInfo);
-                                count = count + 1;
+                                count++;
                             }
                             else
                             {
@@ -559,31 +562,20 @@ namespace MediaBrowser.Plugins.VuPlus
 
             var protocol = "http";
             if (Plugin.Instance.Configuration.UseSecureHTTPS)
+            {
                 protocol = "https";
+            }
 
             var baseUrl = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
 
             var url = string.Format("{0}/web/movielist", baseUrl);
             UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetRecordingsAsync url: {0}", url));
 
-            var options = new HttpRequestOptions
+            using (var stream = await _httpClient.GetStreamAsync(url, cancellationToken).ConfigureAwait(false))
             {
-                CancellationToken = cancellationToken,
-                Url = url
-            };
-
-            if (!string.IsNullOrEmpty(Plugin.Instance.Configuration.WebInterfaceUsername))
-            {
-                string authInfo = Plugin.Instance.Configuration.WebInterfaceUsername + ":" + Plugin.Instance.Configuration.WebInterfacePassword;
-                authInfo = Convert.ToBase64String(Encoding.Default.GetBytes(authInfo));
-                options.RequestHeaders["Authorization"] = "Basic " + authInfo;
-            }
-
-            using (var stream = await _httpClient.Get(options).ConfigureAwait(false))
-            {
-                using (StreamReader reader = new StreamReader(stream))
+                using (var reader = new StreamReader(stream))
                 {
-                    string xmlResponse = reader.ReadToEnd();
+                    var xmlResponse = reader.ReadToEnd();
                     UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetRecordingsAsync response: {0}", xmlResponse));
 
                     try
@@ -591,11 +583,11 @@ namespace MediaBrowser.Plugins.VuPlus
                         var xml = new XmlDocument();
                         xml.LoadXml(xmlResponse);
 
-                        List<MyRecordingInfo> recordingInfos = new List<MyRecordingInfo>();
+                        var recordingInfos = new List<MyRecordingInfo>();
 
-                        int count = 1;
+                        var count = 1;
 
-                        XmlNodeList e2movie = xml.GetElementsByTagName("e2movie");
+                        var e2movie = xml.GetElementsByTagName("e2movie");
 
                         foreach (XmlNode xmlNode in e2movie)
                         {
@@ -646,14 +638,19 @@ namespace MediaBrowser.Plugins.VuPlus
                             recordingInfo.ChannelId = null;
                             //check for radio channel
                             if (e2servicereference.ToUpper().Contains("RADIO"))
+                            {
                                 recordingInfo.ChannelType = ChannelType.Radio;
+                            }
                             else
+                            {
                                 recordingInfo.ChannelType = ChannelType.TV;
+                            }
+
                             recordingInfo.HasImage = false;
                             recordingInfo.ImagePath = null;
                             recordingInfo.ImageUrl = null;
 
-                            foreach (ChannelInfo channelInfo in tvChannelInfos)
+                            foreach (var channelInfo in tvChannelInfos)
                             {
                                 if (channelInfo.Name == e2servicename)
                                 {
@@ -674,16 +671,16 @@ namespace MediaBrowser.Plugins.VuPlus
 
                             recordingInfo.CommunityRating = 0;
 
-                            long sdated = Int64.Parse(e2time);
-                            DateTime sdate = ApiHelper.DateTimeFromUnixTimestampSeconds(sdated);
+                            var sdated = long.Parse(e2time);
+                            var sdate = ApiHelper.DateTimeFromUnixTimestampSeconds(sdated);
                             recordingInfo.StartDate = sdate.ToUniversalTime();
 
                             //length in format mm:ss
-                            string[] words = e2length.Split(':');
-                            long mins = Int64.Parse(words[0]);
-                            long seconds = Int64.Parse(words[1]);
-                            long edated = Int64.Parse(e2time) + (mins * 60) + (seconds);
-                            DateTime edate = ApiHelper.DateTimeFromUnixTimestampSeconds(edated);
+                            var words = e2length.Split(':');
+                            var mins = long.Parse(words[0]);
+                            var seconds = long.Parse(words[1]);
+                            var edated = long.Parse(e2time) + (mins * 60) + (seconds);
+                            var edate = ApiHelper.DateTimeFromUnixTimestampSeconds(edated);
                             recordingInfo.EndDate = edate.ToUniversalTime();
 
                             //recordingInfo.EpisodeTitle = e2title;
@@ -691,8 +688,10 @@ namespace MediaBrowser.Plugins.VuPlus
 
                             recordingInfo.Overview = e2description;
 
-                            List<String> genre = new List<String>();
-                            genre.Add("Unknown");
+                            var genre = new List<string>
+                            {
+                                "Unknown"
+                            };
                             recordingInfo.Genres = genre;
 
                             recordingInfo.Id = e2servicereference;
@@ -742,31 +741,20 @@ namespace MediaBrowser.Plugins.VuPlus
 
             var protocol = "http";
             if (Plugin.Instance.Configuration.UseSecureHTTPS)
+            {
                 protocol = "https";
+            }
 
             var baseUrl = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
 
             var url = string.Format("{0}/web/moviedelete?sRef={1}", baseUrl, recordingId);
             UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] DeleteRecordingAsync url: {0}", url));
 
-            var options = new HttpRequestOptions
+            using (var stream = await _httpClient.GetStreamAsync(url, cancellationToken).ConfigureAwait(false))
             {
-                CancellationToken = cancellationToken,
-                Url = url
-            };
-
-            if (!string.IsNullOrEmpty(Plugin.Instance.Configuration.WebInterfaceUsername))
-            {
-                string authInfo = Plugin.Instance.Configuration.WebInterfaceUsername + ":" + Plugin.Instance.Configuration.WebInterfacePassword;
-                authInfo = Convert.ToBase64String(Encoding.Default.GetBytes(authInfo));
-                options.RequestHeaders["Authorization"] = "Basic " + authInfo;
-            }
-
-            using (var stream = await _httpClient.Get(options).ConfigureAwait(false))
-            {
-                using (StreamReader reader = new StreamReader(stream))
+                using (var reader = new StreamReader(stream))
                 {
-                    string xmlResponse = reader.ReadToEnd();
+                    var xmlResponse = reader.ReadToEnd();
                     UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] DeleteRecordingAsync response: {0}", xmlResponse));
 
                     try
@@ -774,7 +762,7 @@ namespace MediaBrowser.Plugins.VuPlus
                         var xml = new XmlDocument();
                         xml.LoadXml(xmlResponse);
 
-                        XmlNodeList e2simplexmlresult = xml.GetElementsByTagName("e2simplexmlresult");
+                        var e2simplexmlresult = xml.GetElementsByTagName("e2simplexmlresult");
                         foreach (XmlNode xmlNode in e2simplexmlresult)
                         {
                             var recordingInfo = new RecordingInfo();
@@ -825,7 +813,7 @@ namespace MediaBrowser.Plugins.VuPlus
             await EnsureConnectionAsync(cancellationToken).ConfigureAwait(false);
 
             // extract sRef, id, begin and end from passed timerId
-            string[] words = timerId.Split('~');
+            var words = timerId.Split('~');
             var sRef = words[0];
             var id = words[1];
             var begin = words[2];
@@ -833,31 +821,20 @@ namespace MediaBrowser.Plugins.VuPlus
 
             var protocol = "http";
             if (Plugin.Instance.Configuration.UseSecureHTTPS)
+            {
                 protocol = "https";
+            }
 
             var baseUrl = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
 
             var url = string.Format("{0}/web/timerdelete?sRef={1}&begin={2}&end={3}", baseUrl, sRef, begin, end);
             UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] CancelTimerAsync url: {0}", url));
 
-            var options = new HttpRequestOptions
+            using (var stream = await _httpClient.GetStreamAsync(url, cancellationToken).ConfigureAwait(false))
             {
-                CancellationToken = cancellationToken,
-                Url = url
-            };
-
-            if (!string.IsNullOrEmpty(Plugin.Instance.Configuration.WebInterfaceUsername))
-            {
-                string authInfo = Plugin.Instance.Configuration.WebInterfaceUsername + ":" + Plugin.Instance.Configuration.WebInterfacePassword;
-                authInfo = Convert.ToBase64String(Encoding.Default.GetBytes(authInfo));
-                options.RequestHeaders["Authorization"] = "Basic " + authInfo;
-            }
-
-            using (var stream = await _httpClient.Get(options).ConfigureAwait(false))
-            {
-                using (StreamReader reader = new StreamReader(stream))
+                using (var reader = new StreamReader(stream))
                 {
-                    string xmlResponse = reader.ReadToEnd();
+                    var xmlResponse = reader.ReadToEnd();
                     UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] CancelTimerAsync response: {0}", xmlResponse));
 
                     try
@@ -865,7 +842,7 @@ namespace MediaBrowser.Plugins.VuPlus
                         var xml = new XmlDocument();
                         xml.LoadXml(xmlResponse);
 
-                        XmlNodeList e2simplexmlresult = xml.GetElementsByTagName("e2simplexmlresult");
+                        var e2simplexmlresult = xml.GetElementsByTagName("e2simplexmlresult");
                         foreach (XmlNode xmlNode in e2simplexmlresult)
                         {
                             var recordingInfo = new RecordingInfo();
@@ -916,12 +893,14 @@ namespace MediaBrowser.Plugins.VuPlus
             await EnsureConnectionAsync(cancellationToken).ConfigureAwait(false);
 
             // extract eventid from info.ProgramId
-            string[] words = info.ProgramId.Split('~');
+            var words = info.ProgramId.Split('~');
             var eventid = words[1];
 
             var protocol = "http";
             if (Plugin.Instance.Configuration.UseSecureHTTPS)
+            {
                 protocol = "https";
+            }
 
             var baseUrl = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
 
@@ -934,24 +913,11 @@ namespace MediaBrowser.Plugins.VuPlus
 
             UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] CreateTimerAsync url: {0}", url));
 
-            var options = new HttpRequestOptions
+            using (var stream = await _httpClient.GetStreamAsync(url, cancellationToken).ConfigureAwait(false))
             {
-                CancellationToken = cancellationToken,
-                Url = url
-            };
-
-            if (!string.IsNullOrEmpty(Plugin.Instance.Configuration.WebInterfaceUsername))
-            {
-                string authInfo = Plugin.Instance.Configuration.WebInterfaceUsername + ":" + Plugin.Instance.Configuration.WebInterfacePassword;
-                authInfo = Convert.ToBase64String(Encoding.Default.GetBytes(authInfo));
-                options.RequestHeaders["Authorization"] = "Basic " + authInfo;
-            }
-
-            using (var stream = await _httpClient.Get(options).ConfigureAwait(false))
-            {
-                using (StreamReader reader = new StreamReader(stream))
+                using (var reader = new StreamReader(stream))
                 {
-                    string xmlResponse = reader.ReadToEnd();
+                    var xmlResponse = reader.ReadToEnd();
                     UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] CancelTimerAsync response: {0}", xmlResponse));
 
                     try
@@ -959,7 +925,7 @@ namespace MediaBrowser.Plugins.VuPlus
                         var xml = new XmlDocument();
                         xml.LoadXml(xmlResponse);
 
-                        XmlNodeList e2simplexmlresult = xml.GetElementsByTagName("e2simplexmlresult");
+                        var e2simplexmlresult = xml.GetElementsByTagName("e2simplexmlresult");
                         foreach (XmlNode xmlNode in e2simplexmlresult)
                         {
                             var recordingInfo = new RecordingInfo();
@@ -1010,31 +976,20 @@ namespace MediaBrowser.Plugins.VuPlus
 
             var protocol = "http";
             if (Plugin.Instance.Configuration.UseSecureHTTPS)
+            {
                 protocol = "https";
+            }
 
             var baseUrl = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
 
             var url = string.Format("{0}/web/timerlist", baseUrl);
             UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetTimersAsync url: {0}", url));
 
-            var options = new HttpRequestOptions
+            using (var stream = await _httpClient.GetStreamAsync(url, cancellationToken).ConfigureAwait(false))
             {
-                CancellationToken = cancellationToken,
-                Url = url
-            };
-
-            if (!string.IsNullOrEmpty(Plugin.Instance.Configuration.WebInterfaceUsername))
-            {
-                string authInfo = Plugin.Instance.Configuration.WebInterfaceUsername + ":" + Plugin.Instance.Configuration.WebInterfacePassword;
-                authInfo = Convert.ToBase64String(Encoding.Default.GetBytes(authInfo));
-                options.RequestHeaders["Authorization"] = "Basic " + authInfo;
-            }
-
-            using (var stream = await _httpClient.Get(options).ConfigureAwait(false))
-            {
-                using (StreamReader reader = new StreamReader(stream))
+                using (var reader = new StreamReader(stream))
                 {
-                    string xmlResponse = reader.ReadToEnd();
+                    var xmlResponse = reader.ReadToEnd();
                     UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetTimersAsync response: {0}", xmlResponse));
 
                     try
@@ -1042,11 +997,11 @@ namespace MediaBrowser.Plugins.VuPlus
                         var xml = new XmlDocument();
                         xml.LoadXml(xmlResponse);
 
-                        List<TimerInfo> timerInfos = new List<TimerInfo>();
+                        var timerInfos = new List<TimerInfo>();
 
-                        int count = 1;
+                        var count = 1;
 
-                        XmlNodeList e2timer = xml.GetElementsByTagName("e2timer");
+                        var e2timer = xml.GetElementsByTagName("e2timer");
                         foreach (XmlNode xmlNode in e2timer)
                         {
                             var timerInfo = new TimerInfo();
@@ -1097,8 +1052,8 @@ namespace MediaBrowser.Plugins.VuPlus
 
                                 timerInfo.ChannelId = e2servicereference;
 
-                                long edated = Int64.Parse(e2timeend);
-                                DateTime edate = ApiHelper.DateTimeFromUnixTimestampSeconds(edated);
+                                var edated = long.Parse(e2timeend);
+                                var edate = ApiHelper.DateTimeFromUnixTimestampSeconds(edated);
                                 timerInfo.EndDate = edate.ToUniversalTime();
 
                                 timerInfo.Id = e2servicereference + "~" + e2eit + "~" + e2timebegin + "~" + e2timeend + "~" + count;
@@ -1113,14 +1068,19 @@ namespace MediaBrowser.Plugins.VuPlus
                                 timerInfo.ProgramId = null;
                                 timerInfo.SeriesTimerId = null;
 
-                                long sdated = Int64.Parse(e2timebegin);
-                                DateTime sdate = ApiHelper.DateTimeFromUnixTimestampSeconds(sdated);
+                                var sdated = long.Parse(e2timebegin);
+                                var sdate = ApiHelper.DateTimeFromUnixTimestampSeconds(sdated);
                                 timerInfo.StartDate = sdate.ToUniversalTime();
 
                                 if (e2state == "0")
+                                {
                                     timerInfo.Status = RecordingStatus.New;
+                                }
+
                                 if (e2state == "2")
+                                {
                                     timerInfo.Status = RecordingStatus.InProgress;
+                                }
 
                                 timerInfos.Add(timerInfo);
                                 count = count + 1;
@@ -1163,7 +1123,9 @@ namespace MediaBrowser.Plugins.VuPlus
 
             var protocol = "http";
             if (Plugin.Instance.Configuration.UseSecureHTTPS)
+            {
                 protocol = "https";
+            }
 
             var baseUrl = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.StreamingPort;
 
@@ -1174,7 +1136,7 @@ namespace MediaBrowser.Plugins.VuPlus
             }
 
             _liveStreams++;
-            string streamUrl = string.Format("{0}/{1}", baseUrl, channelOid);
+            var streamUrl = string.Format("{0}/{1}", baseUrl, channelOid);
             UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetChannelStream url: {0}", streamUrl));
 
             return new MediaSourceInfo
@@ -1212,38 +1174,27 @@ namespace MediaBrowser.Plugins.VuPlus
         /// <param name="cancellationToken">The CancellationToken</param>
         /// <param name="channelOid">The channel id</param>
         /// <returns></returns>
-        public async Task ZapToChannel(CancellationToken cancellationToken, String channelOid)
+        public async Task ZapToChannel(CancellationToken cancellationToken, string channelOid)
         {
             _logger.LogInformation("[VuPlus] Start ZapToChannel");
             await EnsureConnectionAsync(cancellationToken).ConfigureAwait(false);
 
             var protocol = "http";
             if (Plugin.Instance.Configuration.UseSecureHTTPS)
+            {
                 protocol = "https";
+            }
 
             var baseUrl = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
 
             var url = string.Format("{0}/web/zap?sRef={1}", baseUrl, channelOid);
             UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] ZapToChannel url: {0}", url));
 
-            var options = new HttpRequestOptions()
+            using (var stream = await _httpClient.GetStreamAsync(url, cancellationToken).ConfigureAwait(false))
             {
-                CancellationToken = cancellationToken,
-                Url = url
-            };
-
-            if (!string.IsNullOrEmpty(Plugin.Instance.Configuration.WebInterfaceUsername))
-            {
-                string authInfo = Plugin.Instance.Configuration.WebInterfaceUsername + ":" + Plugin.Instance.Configuration.WebInterfacePassword;
-                authInfo = Convert.ToBase64String(Encoding.Default.GetBytes(authInfo));
-                options.RequestHeaders["Authorization"] = "Basic " + authInfo;
-            }
-
-            using (var stream = await _httpClient.Get(options).ConfigureAwait(false))
-            {
-                using (StreamReader reader = new StreamReader(stream))
+                using (var reader = new StreamReader(stream))
                 {
-                    string xmlResponse = reader.ReadToEnd();
+                    var xmlResponse = reader.ReadToEnd();
                     UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] ZapToChannel response: {0}", xmlResponse));
 
                     try
@@ -1251,7 +1202,7 @@ namespace MediaBrowser.Plugins.VuPlus
                         var xml = new XmlDocument();
                         xml.LoadXml(xmlResponse);
 
-                        XmlNodeList e2simplexmlresult = xml.GetElementsByTagName("e2simplexmlresult");
+                        var e2simplexmlresult = xml.GetElementsByTagName("e2simplexmlresult");
                         foreach (XmlNode xmlNode in e2simplexmlresult)
                         {
                             var recordingInfo = new RecordingInfo();
@@ -1302,7 +1253,7 @@ namespace MediaBrowser.Plugins.VuPlus
         {
             _logger.LogInformation("[VuPlus] Start GetNewTimerDefaultsAsync");
 
-            SeriesTimerInfo seriesTimerInfo = new SeriesTimerInfo();
+            var seriesTimerInfo = new SeriesTimerInfo();
 
             return seriesTimerInfo;
         }
@@ -1321,38 +1272,27 @@ namespace MediaBrowser.Plugins.VuPlus
             _logger.LogInformation("[VuPlus] Start GetProgramsAsync");
             await EnsureConnectionAsync(cancellationToken).ConfigureAwait(false);
 
-            Random rnd = new Random();
+            var rnd = new Random();
 
             var imagePath = "";
             var imageUrl = "";
 
             var protocol = "http";
             if (Plugin.Instance.Configuration.UseSecureHTTPS)
+            {
                 protocol = "https";
+            }
 
             var baseUrl = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
 
             var url = string.Format("{0}/web/epgservice?sRef={1}", baseUrl, channelId);
             UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetProgramsAsync url: {0}", url));
 
-            var options = new HttpRequestOptions()
+            using (var stream = await _httpClient.GetStreamAsync(url, cancellationToken).ConfigureAwait(false))
             {
-                CancellationToken = cancellationToken,
-                Url = url
-            };
-
-            if (!string.IsNullOrEmpty(Plugin.Instance.Configuration.WebInterfaceUsername))
-            {
-                string authInfo = Plugin.Instance.Configuration.WebInterfaceUsername + ":" + Plugin.Instance.Configuration.WebInterfacePassword;
-                authInfo = Convert.ToBase64String(Encoding.Default.GetBytes(authInfo));
-                options.RequestHeaders["Authorization"] = "Basic " + authInfo;
-            }
-
-            using (var stream = await _httpClient.Get(options).ConfigureAwait(false))
-            {
-                using (StreamReader reader = new StreamReader(stream))
+                using (var reader = new StreamReader(stream))
                 {
-                    string xmlResponse = reader.ReadToEnd();
+                    var xmlResponse = reader.ReadToEnd();
                     UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetProgramsAsync response: {0}", xmlResponse));
 
                     try
@@ -1360,13 +1300,13 @@ namespace MediaBrowser.Plugins.VuPlus
                         var xml = new XmlDocument();
                         xml.LoadXml(xmlResponse);
 
-                        List<ProgramInfo> programInfos = new List<ProgramInfo>();
+                        var programInfos = new List<ProgramInfo>();
 
-                        int count = 1;
+                        var count = 1;
 
-                        XmlNodeList e2event = xml.GetElementsByTagName("e2event");
+                        var e2event = xml.GetElementsByTagName("e2event");
                         foreach (XmlNode xmlNode in e2event)
-                        {                          
+                        {
                             var programInfo = new ProgramInfo();
 
                             var e2eventid = "?";
@@ -1419,8 +1359,8 @@ namespace MediaBrowser.Plugins.VuPlus
                                 }
                             }
 
-                            long sdated = Int64.Parse(e2eventstart);
-                            DateTime sdate = ApiHelper.DateTimeFromUnixTimestampSeconds(sdated);
+                            var sdated = long.Parse(e2eventstart);
+                            var sdate = ApiHelper.DateTimeFromUnixTimestampSeconds(sdated);
 
                             // Check whether the current element is within the time range passed
                             if (sdate > endDateUtc)
@@ -1436,7 +1376,7 @@ namespace MediaBrowser.Plugins.VuPlus
                                 //programInfo.ImageUrl = null;
                                 if (count == 1)
                                 {
-                                    foreach (ChannelInfo channelInfo in tvChannelInfos)
+                                    foreach (var channelInfo in tvChannelInfos)
                                     {
                                         if (channelInfo.Name == e2eventservicename)
                                         {
@@ -1462,14 +1402,16 @@ namespace MediaBrowser.Plugins.VuPlus
 
                                 programInfo.Overview = e2eventdescriptionextended;
 
-                                long edated = Int64.Parse(e2eventstart) + Int64.Parse(e2eventduration);
-                                DateTime edate = ApiHelper.DateTimeFromUnixTimestampSeconds(edated);
+                                var edated = long.Parse(e2eventstart) + long.Parse(e2eventduration);
+                                var edate = ApiHelper.DateTimeFromUnixTimestampSeconds(edated);
 
                                 programInfo.StartDate = sdate.ToUniversalTime();
                                 programInfo.EndDate = edate.ToUniversalTime();
 
-                                List<String> genre = new List<String>();
-                                genre.Add("Unknown");
+                                var genre = new List<string>
+                                {
+                                    "Unknown"
+                                };
                                 programInfo.Genres = genre;
 
                                 //programInfo.OriginalAirDate = null;
@@ -1515,38 +1457,27 @@ namespace MediaBrowser.Plugins.VuPlus
 
             //TODO: Version check
 
-            bool upgradeAvailable = false;
-            string serverVersion = "Unknown";
+            var upgradeAvailable = false;
+            var serverVersion = "Unknown";
 
             var protocol = "http";
             if (Plugin.Instance.Configuration.UseSecureHTTPS)
+            {
                 protocol = "https";
+            }
 
             var baseUrl = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
 
             var url = string.Format("{0}/web/deviceinfo", baseUrl);
             UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetStatusInfoAsync url: {0}", url));
 
-            var options = new HttpRequestOptions()
-            {
-                CancellationToken = cancellationToken,
-                Url = url
-            };
+            var liveTvTunerInfos = new List<LiveTvTunerInfo>();
 
-            if (!string.IsNullOrEmpty(Plugin.Instance.Configuration.WebInterfaceUsername))
+            using (var stream = await _httpClient.GetStreamAsync(url, cancellationToken).ConfigureAwait(false))
             {
-                string authInfo = Plugin.Instance.Configuration.WebInterfaceUsername + ":" + Plugin.Instance.Configuration.WebInterfacePassword;
-                authInfo = Convert.ToBase64String(Encoding.Default.GetBytes(authInfo));
-                options.RequestHeaders["Authorization"] = "Basic " + authInfo;
-            }
-
-            List<LiveTvTunerInfo> liveTvTunerInfos = new List<LiveTvTunerInfo>();
-
-            using (var stream = await _httpClient.Get(options).ConfigureAwait(false))
-            {
-                using (StreamReader reader = new StreamReader(stream))
+                using (var reader = new StreamReader(stream))
                 {
-                    string xmlResponse = reader.ReadToEnd();
+                    var xmlResponse = reader.ReadToEnd();
                     UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetStatusInfoAsync response: {0}", xmlResponse));
 
                     try
@@ -1554,7 +1485,7 @@ namespace MediaBrowser.Plugins.VuPlus
                         var xml = new XmlDocument();
                         xml.LoadXml(xmlResponse);
 
-                        XmlNodeList e2frontend = xml.GetElementsByTagName("e2frontend");
+                        var e2frontend = xml.GetElementsByTagName("e2frontend");
                         foreach (XmlNode xmlNode in e2frontend)
                         {
                             var liveTvTunerInfo = new LiveTvTunerInfo();
@@ -1605,20 +1536,14 @@ namespace MediaBrowser.Plugins.VuPlus
         /// Gets the homepage url.
         /// </summary>
         /// <value>The homepage url.</value>
-        public string HomePageUrl
-        {
-            get { return "http://www.VuPlus.com/"; }
-        }
+        public string HomePageUrl => "http://www.VuPlus.com/";
 
 
         /// <summary>
         /// Gets the name.
         /// </summary>
         /// <value>The name.</value>
-        public string Name
-        {
-            get { return "VuPlus"; }
-        }
+        public string Name => "VuPlus";
 
 
         public async Task<MediaSourceInfo> GetRecordingStream(string recordingId, string mediaSourceId, CancellationToken cancellationToken)
@@ -1636,7 +1561,7 @@ namespace MediaBrowser.Plugins.VuPlus
         public async Task CopyFilesAsync(StreamReader source, StreamWriter destination)
         {
             _logger.LogInformation("[VuPlus] Start CopyFiles Async");
-            char[] buffer = new char[0x1000];
+            var buffer = new char[0x1000];
             int numRead;
             while ((numRead = await source.ReadAsync(buffer, 0, buffer.Length)) != 0)
             {
@@ -1660,7 +1585,7 @@ namespace MediaBrowser.Plugins.VuPlus
         {
             _logger.LogInformation("[VuPlus] Start GetSeriesTimersAsync");
 
-            List<SeriesTimerInfo> seriesTimerInfo = new List<SeriesTimerInfo>();
+            var seriesTimerInfo = new List<SeriesTimerInfo>();
             return seriesTimerInfo;
         }
 

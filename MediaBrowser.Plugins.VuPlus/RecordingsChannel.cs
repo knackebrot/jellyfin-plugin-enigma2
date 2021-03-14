@@ -1,20 +1,19 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Globalization;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using MediaBrowser.Controller.Channels;
-using MediaBrowser.Controller.Providers;
-using MediaBrowser.Model.Entities;
-using MediaBrowser.Model.Channels;
-using MediaBrowser.Model.MediaInfo;
-using MediaBrowser.Controller.LiveTv;
-using System.Linq;
 using MediaBrowser.Common.Extensions;
-using MediaBrowser.Model.Dto;
-using System.Globalization;
+using MediaBrowser.Controller.Channels;
 using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.LiveTv;
+using MediaBrowser.Controller.Providers;
+using MediaBrowser.Model.Channels;
+using MediaBrowser.Model.Dto;
+using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.LiveTv;
+using MediaBrowser.Model.MediaInfo;
 
 namespace MediaBrowser.Plugins.VuPlus
 {
@@ -27,56 +26,27 @@ namespace MediaBrowser.Plugins.VuPlus
             _liveTvManager = liveTvManager;
         }
 
-        public string Name
-        {
-            get
-            {
-                return "VuPlus Recordings";
-            }
-        }
+        public string Name => "VuPlus Recordings";
 
-        public string[] Attributes
-        {
-            get
-            {
-                return new[] { "Recordings" };
-            }
-        }
+        public string[] Attributes => new[] { "Recordings" };
 
-        public string Description
-        {
-            get
-            {
-                return "VuPlus Recordings";
-            }
-        }
+        public string Description => "VuPlus Recordings";
 
-        public string DataVersion
-        {
-            get
-            {
-                return "1";
-            }
-        }
+        public string DataVersion => "1";
 
-        public string HomePageUrl
-        {
-            get { return null; }
-        }
+        public string HomePageUrl => null;
 
-        public ChannelParentalRating ParentalRating
-        {
-            get { return ChannelParentalRating.GeneralAudience; }
-        }
+        public ChannelParentalRating ParentalRating => ChannelParentalRating.GeneralAudience;
 
         public string GetCacheKey(string userId)
         {
             var now = DateTime.UtcNow;
 
-            var values = new List<string>();
-
-            values.Add(now.DayOfYear.ToString(CultureInfo.InvariantCulture));
-            values.Add(now.Hour.ToString(CultureInfo.InvariantCulture));
+            var values = new List<string>
+            {
+                now.DayOfYear.ToString(CultureInfo.InvariantCulture),
+                now.Hour.ToString(CultureInfo.InvariantCulture)
+            };
 
             double minute = now.Minute;
             minute /= 5;
@@ -94,8 +64,8 @@ namespace MediaBrowser.Plugins.VuPlus
             {
                 ContentTypes = new List<ChannelMediaContentType>
                  {
-                      ChannelMediaContentType.Movie,
-                      ChannelMediaContentType.Episode,
+                    ChannelMediaContentType.Movie,
+                    ChannelMediaContentType.Episode,
                     ChannelMediaContentType.Clip
                  },
                 MediaTypes = new List<ChannelMediaType>

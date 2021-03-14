@@ -4,14 +4,14 @@
     <title>Vu+</title>
 </head>
 <body>
-    <div data-role="page" class="page type-interior pluginConfigurationPage VuPlusConfigurationPage" data-require="emby-button,emby-checkbox,emby-input">
+    <div data-role="page" id="VuPlusConfigurationPage" class="page type-interior pluginConfigurationPage VuPlusConfigurationPage" data-require="emby-button,emby-checkbox,emby-input">
 
         <div data-role="content">
             <div class="content-primary">
 
                 <h1>VuPlus</h1>
 
-                <form class="VuPlusConfigurationForm">
+                <form id="VuPlusConfigurationForm" class="VuPlusConfigurationForm">
 
                     <div class="inputContainer">
                         <input is="emby-input" id="txtHostName" type="text" label="Vu+ hostname or ip address:" />
@@ -122,81 +122,61 @@
 
 
         <script type="text/javascript">
-
             var VuPlusConfigurationPage = {
-                pluginUniqueId: "9564ac10-af23-39bc-449f-624f23cfa48f"
-            };
+                pluginUniqueId: "9564ac10-af23-39bc-449f-624f23cfa48f",
 
-            $('.VuPlusConfigurationPage').on('pageshow', function (event) {
+                loadConfiguration: function () {
+                    Dashboard.showLoadingMsg();
 
-                Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(VuPlusConfigurationPage.pluginUniqueId).then(function (config) {
+                        document.getElementById('txtHostName').value = config.HostName || "";
+                        document.getElementById('txtStreamingPort').value = config.StreamingPort || "";
+                        document.getElementById('txtWebInterfacePort').value = config.WebInterfacePort || "";
+                        document.getElementById('txtWebInterfaceUsername').value = config.WebInterfaceUsername || "";
+                        document.getElementById('txtWebInterfacePassword').value = config.WebInterfacePassword || "";
+                        document.getElementById('chkUseSecureHTTPS').checked = config.UseSecureHTTPS || false;
+                        document.getElementById('chkOnlyOneBouquet').checked = config.OnlyOneBouquet || false;
+                        document.getElementById('txtTVBouquet').value = config.TVBouquet || "";
+                        document.getElementById('chkZapToChannel').checked = config.ZapToChannel || false;
+                        document.getElementById('chkFetchPiconsFromWebInterface').checked = config.FetchPiconsFromWebInterface || false;
+                        document.getElementById('txtPiconsPath').value = config.PiconsPath || "";
+                        document.getElementById('txtRecordingPath').value = config.RecordingPath || "";
+                        document.getElementById('chkDebugLogging').checked = config.EnableDebugLogging || false;
 
-                var page = this;
+                        Dashboard.hideLoadingMsg();
+                    });
+                },
 
-                ApiClient.getPluginConfiguration(VuPlusConfigurationPage.pluginUniqueId).then(function (config) {
+                saveConfiguration: function () {
+                    Dashboard.showLoadingMsg();
 
-                    $('#txtHostName', page).val(config.HostName || "");
-                    $('#txtStreamingPort', page).val(config.StreamingPort || "");
-                    $('#txtWebInterfacePort', page).val(config.WebInterfacePort || "");
-                    $('#txtWebInterfaceUsername', page).val(config.WebInterfaceUsername || "");
-                    $('#txtWebInterfacePassword', page).val(config.WebInterfacePassword || "");
-                    $('#chkUseSecureHTTPS', page).checked(config.UseSecureHTTPS || false).checkboxradio("refresh");
-                    $('#chkOnlyOneBouquet', page).checked(config.OnlyOneBouquet || false).checkboxradio("refresh");
-                    $('#txtTVBouquet', page).val(config.TVBouquet || "");
-                    $('#chkZapToChannel', page).checked(config.ZapToChannel || false).checkboxradio("refresh");
-                    $('#chkFetchPiconsFromWebInterface', page).checked(config.FetchPiconsFromWebInterface || false).checkboxradio("refresh");
-                    $('#txtPiconsPath', page).val(config.PiconsPath || "");
+                    ApiClient.getPluginConfiguration(VuPlusConfigurationPage.pluginUniqueId).then(function (config) {
+                        config.HostName = document.getElementById('txtHostName').value;
+                        config.StreamingPort = document.getElementById('txtStreamingPort').value;
+                        config.WebInterfacePort = document.getElementById('txtWebInterfacePort').value;
+                        config.WebInterfaceUsername = document.getElementById('txtWebInterfaceUsername').value;
+                        config.WebInterfacePassword = document.getElementById('txtWebInterfacePassword').value;
+                        config.UseSecureHTTPS = document.getElementById('chkUseSecureHTTPS').checked;
+                        config.OnlyOneBouquet = document.getElementById('chkOnlyOneBouquet').checked;
+                        config.TVBouquet = document.getElementById('txtTVBouquet').value;
+                        config.ZapToChannel = document.getElementById('chkZapToChannel').checked;
+                        config.FetchPiconsFromWebInterface = document.getElementById('chkFetchPiconsFromWebInterface').checked;
+                        config.PiconsPath = document.getElementById('txtPiconsPath').value;
+                        config.RecordingPath = document.getElementById('txtRecordingPath').value;
+                        config.EnableDebugLogging = document.getElementById('chkDebugLogging').checked;
 
-                    $('#txtRecordingPath', page).val(config.RecordingPath || "");
+                        ApiClient.updatePluginConfiguration(VuPlusConfigurationPage.pluginUniqueId, config).then(Dashboard.processPluginConfigurationUpdateResult);
+                    });
+                }
+            }
 
-                    $('#chkDebugLogging', page).checked(config.EnableDebugLogging || false).checkboxradio("refresh");
-
-                    Dashboard.hideLoadingMsg();
-                });
+            document.getElementById('VuPlusConfigurationPage').addEventListener('pageshow', function () {
+                VuPlusConfigurationPage.loadConfiguration();
             });
 
-            $('.VuPlusConfigurationForm').on('submit', function (e) {
-
-                Dashboard.showLoadingMsg();
-
-                var form = this;
-
-                ApiClient.getPluginConfiguration(VuPlusConfigurationPage.pluginUniqueId).then(function (config) {
-
-                    //reset TV bouquet reference if TV Bouquet changed
-                    //if (config.TVBouquet != $('#txtTVBouquet', form).val()) {
-                    //    config.tvBouquetSRef = '';
-                    //}
-
-                    //reset TV bouquet reference if Only 1 Bouquet not set
-                    //if ($('#chkOnlyOneBouquet', form).checked()) {
-                    //}
-                    //else
-                    //{
-                    //    config.tvBouquetSRef = '';
-                    //}
-
-                    config.HostName = $('#txtHostName', form).val();
-                    config.StreamingPort = $('#txtStreamingPort', form).val();
-                    config.WebInterfacePort = $('#txtWebInterfacePort', form).val();
-                    config.WebInterfaceUsername = $('#txtWebInterfaceUsername', form).val();
-                    config.WebInterfacePassword = $('#txtWebInterfacePassword', form).val();
-                    config.UseSecureHTTPS = $('#chkUseSecureHTTPS', form).checked();
-                    config.OnlyOneBouquet = $('#chkOnlyOneBouquet', form).checked();
-                    config.TVBouquet = $('#txtTVBouquet', form).val();
-                    config.ZapToChannel = $('#chkZapToChannel', form).checked();
-                    config.FetchPiconsFromWebInterface = $('#chkFetchPiconsFromWebInterface', form).checked();
-                    config.PiconsPath = $('#txtPiconsPath', form).val();
-
-                    config.RecordingPath = $('#txtRecordingPath', form).val();
-
-                    config.EnableDebugLogging = $('#chkDebugLogging', form).checked();
-
-                    ApiClient.updatePluginConfiguration(VuPlusConfigurationPage.pluginUniqueId, config).then(Dashboard.processPluginConfigurationUpdateResult);
-                });
-
-                // Disable default form submission
-                return false;
+            document.getElementById('VuPlusConfigurationForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                VuPlusConfigurationPage.saveConfiguration();
             });
         </script>
     </div>

@@ -1,4 +1,3 @@
-using System;
 using MediaBrowser.Model.Plugins;
 
 namespace MediaBrowser.Plugins.VuPlus.Configuration
@@ -13,16 +12,16 @@ namespace MediaBrowser.Plugins.VuPlus.Configuration
         public string WebInterfacePort { get; set; }
         public string WebInterfaceUsername { get; set; }
         public string WebInterfacePassword { get; set; }
-        public Boolean UseSecureHTTPS { get; set; }
-        public Boolean OnlyOneBouquet { get; set; }       
+        public bool UseSecureHTTPS { get; set; }
+        public bool OnlyOneBouquet { get; set; }
         public string TVBouquet { get; set; }
-        public Boolean ZapToChannel { get; set; }       
-        public Boolean FetchPiconsFromWebInterface { get; set; }
+        public bool ZapToChannel { get; set; }
+        public bool FetchPiconsFromWebInterface { get; set; }
         public string PiconsPath { get; set; }
 
         public string RecordingPath { get; set; }
 
-        public Boolean EnableDebugLogging { get; set; }
+        public bool EnableDebugLogging { get; set; }
 
 
         public PluginConfiguration()
@@ -30,7 +29,7 @@ namespace MediaBrowser.Plugins.VuPlus.Configuration
             HostName = "http://localhost";
             StreamingPort = "8001";
             WebInterfacePort = "8000";
-            WebInterfaceUsername= "";
+            WebInterfaceUsername = "";
             WebInterfacePassword = "";
             UseSecureHTTPS = false;
             OnlyOneBouquet = true;

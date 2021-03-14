@@ -1,5 +1,5 @@
-using MediaBrowser.Model.LiveTv;
 using System;
+using MediaBrowser.Model.LiveTv;
 using Microsoft.Extensions.Logging;
 
 namespace MediaBrowser.Plugins.VuPlus.Helpers
@@ -8,7 +8,7 @@ namespace MediaBrowser.Plugins.VuPlus.Helpers
     {
         public static ChannelType GetChannelType(string channelType)
         {
-            ChannelType type = new ChannelType();
+            var type = new ChannelType();
 
             if (channelType == "0x1")
             {
@@ -28,14 +28,14 @@ namespace MediaBrowser.Plugins.VuPlus.Helpers
         public static void DebugInformation(ILogger<LiveTvService> logger, string message)
         {
             var config = Plugin.Instance.Configuration;
-            bool enableDebugLogging = config.EnableDebugLogging;
+            var enableDebugLogging = config.EnableDebugLogging;
 
             if (enableDebugLogging)
             {
                 logger.LogDebug(message);
             }
         }
-   
+
     }
 
     public static class RecordingHelper
