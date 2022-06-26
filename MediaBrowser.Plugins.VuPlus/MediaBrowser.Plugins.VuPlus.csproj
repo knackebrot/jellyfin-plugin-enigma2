@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net5.0</TargetFrameworks>
-    <AssemblyVersion>4.0.0.0</AssemblyVersion>
-    <FileVersion>4.0.0.0</FileVersion>
+    <TargetFrameworks>net6.0</TargetFrameworks>
+    <AssemblyVersion>4.1.0.0</AssemblyVersion>
+    <FileVersion>4.1.0.0</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net5.0|AnyCPU'">
@@ -20,12 +20,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Jellyfin.Common" Version="10.7.0" />
-    <PackageReference Include="Jellyfin.Naming" Version="10.7.0" />
-    <PackageReference Include="Jellyfin.Controller" Version="10.7.0" />
-    <PackageReference Include="Jellyfin.Model" Version="10.7.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.1" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="5.0.0" />
+    <PackageReference Include="Jellyfin.Common" Version="10.8.0" />
+    <PackageReference Include="Jellyfin.Naming" Version="10.8.0" />
+    <PackageReference Include="Jellyfin.Controller" Version="10.8.0" />
+    <PackageReference Include="Jellyfin.Model" Version="10.8.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0" />
   </ItemGroup>
 
 </Project>

@@ -27,7 +27,6 @@ namespace MediaBrowser.Plugins.VuPlus
     /// </summary>
     public class LiveTvService : ILiveTvService
     {
-        private readonly CultureInfo _usCulture = new CultureInfo("en-US");
         private readonly ILogger<LiveTvService> _logger;
         private int _liveStreams;
         private readonly Dictionary<int, int> _heartBeat = new Dictionary<int, int>();
@@ -802,7 +801,7 @@ namespace MediaBrowser.Plugins.VuPlus
 
 
         /// <summary>
-        /// Cancel pending scheduled Recording 
+        /// Cancel pending scheduled Recording
         /// </summary>
         /// <param name="timerId">The timerId</param>
         /// <param name="cancellationToken">The cancellationToken</param>
