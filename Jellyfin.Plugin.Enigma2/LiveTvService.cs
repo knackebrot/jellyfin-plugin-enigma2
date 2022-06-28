@@ -17,20 +17,18 @@ using MediaBrowser.Model.Dto;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.LiveTv;
 using MediaBrowser.Model.MediaInfo;
-using MediaBrowser.Plugins.VuPlus.Helpers;
+using Jellyfin.Plugin.Enigma2.Helpers;
 using Microsoft.Extensions.Logging;
 
-namespace MediaBrowser.Plugins.VuPlus
+namespace Jellyfin.Plugin.Enigma2
 {
     /// <summary>
     /// Class LiveTvService
     /// </summary>
     public class LiveTvService : ILiveTvService
     {
-        private readonly CultureInfo _usCulture = new CultureInfo("en-US");
         private readonly ILogger<LiveTvService> _logger;
         private int _liveStreams;
-        private readonly Dictionary<int, int> _heartBeat = new Dictionary<int, int>();
 
         private string tvBouquetSRef;
         private List<ChannelInfo> tvChannelInfos = new List<ChannelInfo>();
@@ -47,72 +45,74 @@ namespace MediaBrowser.Plugins.VuPlus
 
 
         /// <summary>
-        /// Ensure that we are connected to the VuPlus server
+        /// Ensure that we are connected to the Enigma2 server
         /// </summary>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         private async Task EnsureConnectionAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("[VuPlus] Start EnsureConnectionAsync");
+            _logger.LogInformation("[Enigma2] Start EnsureConnectionAsync");
 
             var config = Plugin.Instance.Configuration;
 
             // log settings
-            _logger.LogInformation(string.Format("[VuPlus] EnsureConnectionAsync HostName: {0}", config.HostName));
-            _logger.LogInformation(string.Format("[VuPlus] EnsureConnectionAsync StreamingPort: {0}", config.StreamingPort));
-            _logger.LogInformation(string.Format("[VuPlus] EnsureConnectionAsync WebInterfacePort: {0}", config.WebInterfacePort));
+            _logger.LogInformation(string.Format("[Enigma2] EnsureConnectionAsync HostName: {0}", config.HostName));
+            _logger.LogInformation(string.Format("[Enigma2] EnsureConnectionAsync StreamingPort: {0}", config.StreamingPort));
+            _logger.LogInformation(string.Format("[Enigma2] EnsureConnectionAsync WebInterfacePort: {0}", config.WebInterfacePort));
             if (string.IsNullOrEmpty(config.WebInterfaceUsername))
             {
-                _logger.LogInformation("[VuPlus] EnsureConnectionAsync WebInterfaceUsername: ");
+                _logger.LogInformation("[Enigma2] EnsureConnectionAsync WebInterfaceUsername: ");
             }
             else
             {
-                _logger.LogInformation(string.Format("[VuPlus] EnsureConnectionAsync WebInterfaceUsername: {0}", "********"));
+                _logger.LogInformation(string.Format("[Enigma2] EnsureConnectionAsync WebInterfaceUsername: {0}", "********"));
             }
 
             if (string.IsNullOrEmpty(config.WebInterfacePassword))
             {
-                _logger.LogInformation("[VuPlus] EnsureConnectionAsync WebInterfacePassword: ");
+                _logger.LogInformation("[Enigma2] EnsureConnectionAsync WebInterfacePassword: ");
             }
             else
             {
-                _logger.LogInformation(string.Format("[VuPlus] EnsureConnectionAsync WebInterfaceUsername: {0}", "********"));
+                _logger.LogInformation(string.Format("[Enigma2] EnsureConnectionAsync WebInterfaceUsername: {0}", "********"));
             }
 
-            _logger.LogInformation(string.Format("[VuPlus] EnsureConnectionAsync UseSecureHTTPS: {0}", config.UseSecureHTTPS));
-            _logger.LogInformation(string.Format("[VuPlus] EnsureConnectionAsync OnlyOneBouquet: {0}", config.OnlyOneBouquet));
-            _logger.LogInformation(string.Format("[VuPlus] EnsureConnectionAsync TVBouquet: {0}", config.TVBouquet));
-            _logger.LogInformation(string.Format("[VuPlus] EnsureConnectionAsync ZapToChannel: {0}", config.ZapToChannel));
-            _logger.LogInformation(string.Format("[VuPlus] EnsureConnectionAsync FetchPiconsFromWebInterface: {0}", config.FetchPiconsFromWebInterface));
-            _logger.LogInformation(string.Format("[VuPlus] EnsureConnectionAsync PiconsPath: {0}", config.PiconsPath));
-            _logger.LogInformation(string.Format("[VuPlus] EnsureConnectionAsync RecordingPath: {0}", config.RecordingPath));
-            _logger.LogInformation(string.Format("[VuPlus] EnsureConnectionAsync EnableDebugLogging: {0}", config.EnableDebugLogging));
+            _logger.LogInformation(string.Format("[Enigma2] EnsureConnectionAsync UseLoginForStreams: {0}", config.UseLoginForStreams));
+            _logger.LogInformation(string.Format("[Enigma2] EnsureConnectionAsync UseSecureHTTPS: {0}", config.UseSecureHTTPS));
+            _logger.LogInformation(string.Format("[Enigma2] EnsureConnectionAsync UseSecureHTTPSForStreams: {0}", config.UseSecureHTTPSForStreams));
+            _logger.LogInformation(string.Format("[Enigma2] EnsureConnectionAsync OnlyOneBouquet: {0}", config.OnlyOneBouquet));
+            _logger.LogInformation(string.Format("[Enigma2] EnsureConnectionAsync TVBouquet: {0}", config.TVBouquet));
+            _logger.LogInformation(string.Format("[Enigma2] EnsureConnectionAsync ZapToChannel: {0}", config.ZapToChannel));
+            _logger.LogInformation(string.Format("[Enigma2] EnsureConnectionAsync FetchPiconsFromWebInterface: {0}", config.FetchPiconsFromWebInterface));
+            _logger.LogInformation(string.Format("[Enigma2] EnsureConnectionAsync PiconsPath: {0}", config.PiconsPath));
+            _logger.LogInformation(string.Format("[Enigma2] EnsureConnectionAsync RecordingPath: {0}", config.RecordingPath));
+            _logger.LogInformation(string.Format("[Enigma2] EnsureConnectionAsync EnableDebugLogging: {0}", config.EnableDebugLogging));
 
             // validate settings
             if (string.IsNullOrEmpty(config.HostName))
             {
-                _logger.LogError("[VuPlus] HostName must be configured.");
-                throw new InvalidOperationException("VuPlus HostName must be configured.");
+                _logger.LogError("[Enigma2] HostName must be configured.");
+                throw new InvalidOperationException("Enigma2 HostName must be configured.");
             }
 
             if (string.IsNullOrEmpty(config.StreamingPort))
             {
-                _logger.LogError("[VuPlus] Streaming Port must be configured.");
-                throw new InvalidOperationException("VuPlus Streaming Port must be configured.");
+                _logger.LogError("[Enigma2] Streaming Port must be configured.");
+                throw new InvalidOperationException("Enigma2 Streaming Port must be configured.");
             }
 
             if (string.IsNullOrEmpty(config.WebInterfacePort))
             {
-                _logger.LogError("[VuPlus] Web Interface Port must be configured.");
-                throw new InvalidOperationException("VuPlus Web Interface Port must be configured.");
+                _logger.LogError("[Enigma2] Web Interface Port must be configured.");
+                throw new InvalidOperationException("Enigma2 Web Interface Port must be configured.");
             }
 
             if (config.OnlyOneBouquet)
             {
                 if (string.IsNullOrEmpty(config.TVBouquet))
                 {
-                    _logger.LogError("[VuPlus] TV Bouquet must be configured if Fetch only one TV bouquet selected.");
-                    throw new InvalidOperationException("VuPlus TVBouquet must be configured if Fetch only one TV bouquet selected.");
+                    _logger.LogError("[Enigma2] TV Bouquet must be configured if Fetch only one TV bouquet selected.");
+                    throw new InvalidOperationException("Enigma2 TVBouquet must be configured if Fetch only one TV bouquet selected.");
                 }
             }
 
@@ -120,21 +120,21 @@ namespace MediaBrowser.Plugins.VuPlus
             {
                 if (string.IsNullOrEmpty(config.PiconsPath))
                 {
-                    _logger.LogError("[VuPlus] Picons location must be configured if Fetch Picons from Web Service is disabled.");
-                    throw new InvalidOperationException("VuPlus Picons location must be configured if Fetch Picons from Web Service is disabled.");
+                    _logger.LogError("[Enigma2] Picons location must be configured if Fetch Picons from Web Service is disabled.");
+                    throw new InvalidOperationException("Enigma2 Picons location must be configured if Fetch Picons from Web Service is disabled.");
                 }
             }
 
-            _logger.LogInformation("[VuPlus] EnsureConnectionAsync Validation of config parameters completed");
+            _logger.LogInformation("[Enigma2] EnsureConnectionAsync Validation of config parameters completed");
 
             if (config.OnlyOneBouquet)
             {
-                // connect to VuPlus box to test connectivity and at same time get sRef for TV Bouquet.
+                // connect to Enigma2 box to test connectivity and at same time get sRef for TV Bouquet.
                 tvBouquetSRef = await InitiateSession(cancellationToken, config.TVBouquet).ConfigureAwait(false);
             }
             else
             {
-                // connect to VuPlus box to test connectivity.
+                // connect to Enigma2 box to test connectivity.
                 var resultNotRequired = await InitiateSession(cancellationToken, null).ConfigureAwait(false);
                 tvBouquetSRef = null;
             }
@@ -162,14 +162,14 @@ namespace MediaBrowser.Plugins.VuPlus
         }
 
         /// <summary>
-        /// Checks connection to VuPlus and retrieves service reference for channel if only one bouquet.
+        /// Checks connection to Enigma2 and retrieves service reference for channel if only one bouquet.
         /// </summary>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="tvBouquet">The TV Bouquet.</param>
         /// <returns>Task{String>}.</returns>
         public async Task<string> InitiateSession(CancellationToken cancellationToken, string tvBouquet)
         {
-            _logger.LogInformation("[VuPlus] Start InitiateSession, validates connection and returns Bouquet reference if required");
+            _logger.LogInformation("[Enigma2] Start InitiateSession, validates connection and returns Bouquet reference if required");
             //await EnsureConnectionAsync(cancellationToken).ConfigureAwait(false);
 
             var protocol = "http";
@@ -181,14 +181,14 @@ namespace MediaBrowser.Plugins.VuPlus
             var baseUrl = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
 
             var url = string.Format("{0}/web/getservices", baseUrl);
-            UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] InitiateSession url: {0}", url));
+            UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] InitiateSession url: {0}", url));
 
             using (var stream = await _httpClient.GetStreamAsync(url, cancellationToken).ConfigureAwait(false))
             {
                 using (var reader = new StreamReader(stream))
                 {
                     var xmlResponse = reader.ReadToEnd();
-                    UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] InitiateSession response: {0}", xmlResponse));
+                    UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] InitiateSession response: {0}", xmlResponse));
 
                     try
                     {
@@ -229,17 +229,17 @@ namespace MediaBrowser.Plugins.VuPlus
                             // make sure we have found the TV Bouquet
                             if (!string.IsNullOrEmpty(tvBouquet))
                             {
-                                _logger.LogError("[VuPlus] Failed to find TV Bouquet specified in VuPlus configuration.");
-                                throw new ApplicationException("Failed to find TV Bouquet specified in VuPlus configuration.");
+                                _logger.LogError("[Enigma2] Failed to find TV Bouquet specified in Enigma2 configuration.");
+                                throw new ApplicationException("Failed to find TV Bouquet specified in Enigma2 configuration.");
                             }
                         }
                         return tvBouquetReference;
                     }
                     catch (Exception e)
                     {
-                        _logger.LogError("[VuPlus] Failed to parse services information.");
-                        _logger.LogError(string.Format("[VuPlus] InitiateSession error: {0}", e.Message));
-                        throw new ApplicationException("Failed to connect to VuPlus.");
+                        _logger.LogError("[Enigma2] Failed to parse services information.");
+                        _logger.LogError(string.Format("[Enigma2] InitiateSession error: {0}", e.Message));
+                        throw new ApplicationException("Failed to connect to Enigma2.");
                     }
 
                 }
@@ -254,7 +254,7 @@ namespace MediaBrowser.Plugins.VuPlus
         /// <returns>Task{IEnumerable{ChannelInfo}}.</returns>
         public async Task<IEnumerable<ChannelInfo>> GetChannelsAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("[VuPlus] Start GetChannelsAsync, retrieve all channels");
+            _logger.LogInformation("[Enigma2] Start GetChannelsAsync, retrieve all channels");
             await EnsureConnectionAsync(cancellationToken).ConfigureAwait(false);
 
             var protocol = "http";
@@ -267,7 +267,7 @@ namespace MediaBrowser.Plugins.VuPlus
 
             var baseUrlPicon = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
 
-            var url = "";
+            string url;
             if (string.IsNullOrEmpty(tvBouquetSRef))
             {
                 url = string.Format("{0}/web/getservices", baseUrl);
@@ -277,7 +277,7 @@ namespace MediaBrowser.Plugins.VuPlus
                 url = string.Format("{0}/web/getservices?sRef={1}", baseUrl, tvBouquetSRef);
             }
 
-            UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetChannelsAsync url: {0}", url));
+            UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetChannelsAsync url: {0}", url));
 
             if (!string.IsNullOrEmpty(Plugin.Instance.Configuration.WebInterfaceUsername))
             {
@@ -290,7 +290,7 @@ namespace MediaBrowser.Plugins.VuPlus
                 {
 
                     var xmlResponse = reader.ReadToEnd();
-                    UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetChannelsAsync response: {0}", xmlResponse));
+                    UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetChannelsAsync response: {0}", xmlResponse));
 
                     try
                     {
@@ -302,7 +302,7 @@ namespace MediaBrowser.Plugins.VuPlus
                         if (string.IsNullOrEmpty(tvBouquetSRef))
                         {
                             // Load channels from all TV Bouquets
-                            _logger.LogInformation("[VuPlus] GetChannelsAsync for all TV Bouquets");
+                            _logger.LogInformation("[Enigma2] GetChannelsAsync for all TV Bouquets");
 
                             var e2services = xml.GetElementsByTagName("e2service");
                             foreach (XmlNode xmlNode in e2services)
@@ -400,7 +400,7 @@ namespace MediaBrowser.Plugins.VuPlus
                                 }
                                 else
                                 {
-                                    _logger.LogInformation("[VuPlus] ignoring channel label " + e2servicereference);
+                                    _logger.LogInformation("[Enigma2] ignoring channel label " + e2servicereference);
                                 }
                             }
                         }
@@ -409,8 +409,8 @@ namespace MediaBrowser.Plugins.VuPlus
                     }
                     catch (Exception e)
                     {
-                        _logger.LogError("[VuPlus] Failed to parse channel information.");
-                        _logger.LogError(string.Format("[VuPlus] GetChannelsAsync error: {0}", e.Message));
+                        _logger.LogError("[Enigma2] Failed to parse channel information.");
+                        _logger.LogError(string.Format("[Enigma2] GetChannelsAsync error: {0}", e.Message));
                         throw new ApplicationException("Failed to parse channel information.");
                     }
                 }
@@ -426,7 +426,7 @@ namespace MediaBrowser.Plugins.VuPlus
         /// <returns>Task{List<ChannelInfo>}.</returns>
         public async Task<List<ChannelInfo>> GetChannelsForTVBouquetAsync(CancellationToken cancellationToken, string sRef)
         {
-            _logger.LogInformation("[VuPlus] Start GetChannelsForTVBouquetAsync, retrieve all channels for TV Bouquet " + sRef);
+            _logger.LogInformation("[Enigma2] Start GetChannelsForTVBouquetAsync, retrieve all channels for TV Bouquet " + sRef);
             await EnsureConnectionAsync(cancellationToken).ConfigureAwait(false);
 
             var protocol = "http";
@@ -437,11 +437,11 @@ namespace MediaBrowser.Plugins.VuPlus
 
             var baseUrl = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
 
-            var baseUrlPicon = protocol + "://" + Plugin.Instance.Configuration.WebInterfaceUsername + ":" + Plugin.Instance.Configuration.WebInterfacePassword + "@" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
+            var baseUrlPicon = baseUrl;
 
             var url = string.Format("{0}/web/getservices?sRef={1}", baseUrl, sRef);
 
-            UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetChannelsForTVBouquetAsync url: {0}", url));
+            UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetChannelsForTVBouquetAsync url: {0}", url));
 
             if (!string.IsNullOrEmpty(Plugin.Instance.Configuration.WebInterfaceUsername))
             {
@@ -453,7 +453,7 @@ namespace MediaBrowser.Plugins.VuPlus
                 using (var reader = new StreamReader(stream))
                 {
                     var xmlResponse = reader.ReadToEnd();
-                    UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetChannelsForTVBouquetAsync response: {0}", xmlResponse));
+                    UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetChannelsForTVBouquetAsync response: {0}", xmlResponse));
 
                     try
                     {
@@ -529,15 +529,15 @@ namespace MediaBrowser.Plugins.VuPlus
                             }
                             else
                             {
-                                UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] ignoring channel {0}", e2servicereference));
+                                UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] ignoring channel {0}", e2servicereference));
                             }
                         }
                         return channelInfos;
                     }
                     catch (Exception e)
                     {
-                        _logger.LogError("[VuPlus] Failed to parse channel information.");
-                        _logger.LogError(string.Format("[VuPlus] GetChannelsForTVBouquetAsync error: {0}", e.Message));
+                        _logger.LogError("[Enigma2] Failed to parse channel information.");
+                        _logger.LogError(string.Format("[Enigma2] GetChannelsForTVBouquetAsync error: {0}", e.Message));
                         throw new ApplicationException("Failed to parse channel information.");
                     }
                 }
@@ -557,7 +557,7 @@ namespace MediaBrowser.Plugins.VuPlus
 
         public async Task<IEnumerable<MyRecordingInfo>> GetAllRecordingsAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("[VuPlus] Start GetRecordingsAsync, retrieve all 'Inprogress' and 'Completed' recordings ");
+            _logger.LogInformation("[Enigma2] Start GetRecordingsAsync, retrieve all 'Inprogress' and 'Completed' recordings ");
             await EnsureConnectionAsync(cancellationToken).ConfigureAwait(false);
 
             var protocol = "http";
@@ -569,14 +569,14 @@ namespace MediaBrowser.Plugins.VuPlus
             var baseUrl = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
 
             var url = string.Format("{0}/web/movielist", baseUrl);
-            UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetRecordingsAsync url: {0}", url));
+            UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetRecordingsAsync url: {0}", url));
 
             using (var stream = await _httpClient.GetStreamAsync(url, cancellationToken).ConfigureAwait(false))
             {
                 using (var reader = new StreamReader(stream))
                 {
                     var xmlResponse = reader.ReadToEnd();
-                    UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetRecordingsAsync response: {0}", xmlResponse));
+                    UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetRecordingsAsync response: {0}", xmlResponse));
 
                     try
                     {
@@ -654,7 +654,7 @@ namespace MediaBrowser.Plugins.VuPlus
                             {
                                 if (channelInfo.Name == e2servicename)
                                 {
-                                    UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetRecordingsAsync match on channel name : {0} for recording {1}", e2servicename, e2title));
+                                    UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetRecordingsAsync match on channel name : {0} for recording {1}", e2servicename, e2title));
                                     recordingInfo.ChannelId = channelInfo.Id;
                                     recordingInfo.ChannelType = channelInfo.ChannelType;
                                     recordingInfo.HasImage = true;
@@ -666,7 +666,7 @@ namespace MediaBrowser.Plugins.VuPlus
 
                             if (recordingInfo.ChannelId == null)
                             {
-                                UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetRecordingsAsync no match on channel name : {0} for recording {1}", e2servicename, e2title));
+                                UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetRecordingsAsync no match on channel name : {0} for recording {1}", e2servicename, e2title));
                             }
 
                             recordingInfo.CommunityRating = 0;
@@ -720,8 +720,8 @@ namespace MediaBrowser.Plugins.VuPlus
                     }
                     catch (Exception e)
                     {
-                        _logger.LogError("[VuPlus] Failed to parse timer information.");
-                        _logger.LogError(string.Format("[VuPlus] GetRecordingsAsync error: {0}", e.Message));
+                        _logger.LogError("[Enigma2] Failed to parse timer information.");
+                        _logger.LogError(string.Format("[Enigma2] GetRecordingsAsync error: {0}", e.Message));
                         throw new ApplicationException("Failed to parse timer information.");
                     }
                 }
@@ -736,7 +736,7 @@ namespace MediaBrowser.Plugins.VuPlus
         /// <returns></returns>
         public async Task DeleteRecordingAsync(string recordingId, CancellationToken cancellationToken)
         {
-            _logger.LogInformation(string.Format("[VuPlus] Start Delete Recording Async for recordingId: {0}", recordingId));
+            _logger.LogInformation(string.Format("[Enigma2] Start Delete Recording Async for recordingId: {0}", recordingId));
             await EnsureConnectionAsync(cancellationToken).ConfigureAwait(false);
 
             var protocol = "http";
@@ -748,14 +748,14 @@ namespace MediaBrowser.Plugins.VuPlus
             var baseUrl = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
 
             var url = string.Format("{0}/web/moviedelete?sRef={1}", baseUrl, recordingId);
-            UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] DeleteRecordingAsync url: {0}", url));
+            UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] DeleteRecordingAsync url: {0}", url));
 
             using (var stream = await _httpClient.GetStreamAsync(url, cancellationToken).ConfigureAwait(false))
             {
                 using (var reader = new StreamReader(stream))
                 {
                     var xmlResponse = reader.ReadToEnd();
-                    UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] DeleteRecordingAsync response: {0}", xmlResponse));
+                    UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] DeleteRecordingAsync response: {0}", xmlResponse));
 
                     try
                     {
@@ -784,16 +784,16 @@ namespace MediaBrowser.Plugins.VuPlus
 
                             if (e2state != "True")
                             {
-                                _logger.LogError("[VuPlus] Failed to delete recording information.");
-                                _logger.LogError(string.Format("[VuPlus] DeleteRecordingAsync e2statetext: {0}", e2statetext));
+                                _logger.LogError("[Enigma2] Failed to delete recording information.");
+                                _logger.LogError(string.Format("[Enigma2] DeleteRecordingAsync e2statetext: {0}", e2statetext));
                                 throw new ApplicationException("Failed to delete recording.");
                             }
                         }
                     }
                     catch (Exception e)
                     {
-                        _logger.LogError("[VuPlus] Failed to parse delete recording information.");
-                        _logger.LogError(string.Format("[VuPlus] DeleteRecordingAsync error: {0}", e.Message));
+                        _logger.LogError("[Enigma2] Failed to parse delete recording information.");
+                        _logger.LogError(string.Format("[Enigma2] DeleteRecordingAsync error: {0}", e.Message));
                         throw new ApplicationException("Failed to parse delete recording information.");
                     }
                 }
@@ -809,7 +809,7 @@ namespace MediaBrowser.Plugins.VuPlus
         /// <returns></returns>
         public async Task CancelTimerAsync(string timerId, CancellationToken cancellationToken)
         {
-            _logger.LogInformation(string.Format("[VuPlus] Start CancelTimerAsync for recordingId: {0}", timerId));
+            _logger.LogInformation(string.Format("[Enigma2] Start CancelTimerAsync for recordingId: {0}", timerId));
             await EnsureConnectionAsync(cancellationToken).ConfigureAwait(false);
 
             // extract sRef, id, begin and end from passed timerId
@@ -828,14 +828,14 @@ namespace MediaBrowser.Plugins.VuPlus
             var baseUrl = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
 
             var url = string.Format("{0}/web/timerdelete?sRef={1}&begin={2}&end={3}", baseUrl, sRef, begin, end);
-            UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] CancelTimerAsync url: {0}", url));
+            UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] CancelTimerAsync url: {0}", url));
 
             using (var stream = await _httpClient.GetStreamAsync(url, cancellationToken).ConfigureAwait(false))
             {
                 using (var reader = new StreamReader(stream))
                 {
                     var xmlResponse = reader.ReadToEnd();
-                    UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] CancelTimerAsync response: {0}", xmlResponse));
+                    UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] CancelTimerAsync response: {0}", xmlResponse));
 
                     try
                     {
@@ -864,16 +864,16 @@ namespace MediaBrowser.Plugins.VuPlus
 
                             if (e2state != "True")
                             {
-                                _logger.LogError("[VuPlus] Failed to cancel timer.");
-                                _logger.LogError(string.Format("[VuPlus] CancelTimerAsync e2statetext: {0}", e2statetext));
+                                _logger.LogError("[Enigma2] Failed to cancel timer.");
+                                _logger.LogError(string.Format("[Enigma2] CancelTimerAsync e2statetext: {0}", e2statetext));
                                 throw new ApplicationException("Failed to cancel timer.");
                             }
                         }
                     }
                     catch (Exception e)
                     {
-                        _logger.LogError("[VuPlus] Failed to parse cancel timer information.");
-                        _logger.LogError(string.Format("[VuPlus] CancelTimerAsync error: {0}", e.Message));
+                        _logger.LogError("[Enigma2] Failed to parse cancel timer information.");
+                        _logger.LogError(string.Format("[Enigma2] CancelTimerAsync error: {0}", e.Message));
                         throw new ApplicationException("Failed to parse cancel timer information.");
                     }
                 }
@@ -889,7 +889,7 @@ namespace MediaBrowser.Plugins.VuPlus
         /// <returns></returns>
         public async Task CreateTimerAsync(TimerInfo info, CancellationToken cancellationToken)
         {
-            _logger.LogInformation(string.Format("[VuPlus] Start CreateTimerAsync for ChannelId: {0} & Name: {1}", info.ChannelId, info.Name));
+            _logger.LogInformation(string.Format("[Enigma2] Start CreateTimerAsync for ChannelId: {0} & Name: {1}", info.ChannelId, info.Name));
             await EnsureConnectionAsync(cancellationToken).ConfigureAwait(false);
 
             // extract eventid from info.ProgramId
@@ -911,14 +911,14 @@ namespace MediaBrowser.Plugins.VuPlus
                 url = url + string.Format("&dirname={0}", WebUtility.UrlEncode(Plugin.Instance.Configuration.RecordingPath));
             }
 
-            UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] CreateTimerAsync url: {0}", url));
+            UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] CreateTimerAsync url: {0}", url));
 
             using (var stream = await _httpClient.GetStreamAsync(url, cancellationToken).ConfigureAwait(false))
             {
                 using (var reader = new StreamReader(stream))
                 {
                     var xmlResponse = reader.ReadToEnd();
-                    UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] CancelTimerAsync response: {0}", xmlResponse));
+                    UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] CancelTimerAsync response: {0}", xmlResponse));
 
                     try
                     {
@@ -947,16 +947,16 @@ namespace MediaBrowser.Plugins.VuPlus
 
                             if (e2state != "True")
                             {
-                                _logger.LogError("[VuPlus] Failed to create timer.");
-                                _logger.LogError(string.Format("[VuPlus] CreateTimerAsync e2statetext: {0}", e2statetext));
+                                _logger.LogError("[Enigma2] Failed to create timer.");
+                                _logger.LogError(string.Format("[Enigma2] CreateTimerAsync e2statetext: {0}", e2statetext));
                                 throw new ApplicationException("Failed to create timer.");
                             }
                         }
                     }
                     catch (Exception e)
                     {
-                        _logger.LogError("[VuPlus] Failed to parse create timer information.");
-                        _logger.LogError(string.Format("[VuPlus] CreateTimerAsync error: {0}", e.Message));
+                        _logger.LogError("[Enigma2] Failed to parse create timer information.");
+                        _logger.LogError(string.Format("[Enigma2] CreateTimerAsync error: {0}", e.Message));
                         throw new ApplicationException("Failed to parse create timer information.");
                     }
                 }
@@ -971,7 +971,7 @@ namespace MediaBrowser.Plugins.VuPlus
         /// <returns>IEnumerable<TimerInfo></returns>
         public async Task<IEnumerable<TimerInfo>> GetTimersAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("[VuPlus] Start GetTimerAsync, retrieve the 'Pending' recordings");
+            _logger.LogInformation("[Enigma2] Start GetTimerAsync, retrieve the 'Pending' recordings");
             await EnsureConnectionAsync(cancellationToken).ConfigureAwait(false);
 
             var protocol = "http";
@@ -983,14 +983,14 @@ namespace MediaBrowser.Plugins.VuPlus
             var baseUrl = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
 
             var url = string.Format("{0}/web/timerlist", baseUrl);
-            UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetTimersAsync url: {0}", url));
+            UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetTimersAsync url: {0}", url));
 
             using (var stream = await _httpClient.GetStreamAsync(url, cancellationToken).ConfigureAwait(false))
             {
                 using (var reader = new StreamReader(stream))
                 {
                     var xmlResponse = reader.ReadToEnd();
-                    UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetTimersAsync response: {0}", xmlResponse));
+                    UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetTimersAsync response: {0}", xmlResponse));
 
                     try
                     {
@@ -1087,15 +1087,15 @@ namespace MediaBrowser.Plugins.VuPlus
                             }
                             else
                             {
-                                _logger.LogInformation("[VuPlus] ignoring timer " + e2name);
+                                _logger.LogInformation("[Enigma2] ignoring timer " + e2name);
                             }
                         }
                         return timerInfos;
                     }
                     catch (Exception e)
                     {
-                        _logger.LogError("[VuPlus] Failed to parse timer information.");
-                        _logger.LogError(string.Format("[VuPlus] GetTimersAsync error: {0}", e.Message));
+                        _logger.LogError("[Enigma2] Failed to parse timer information.");
+                        _logger.LogError(string.Format("[Enigma2] GetTimersAsync error: {0}", e.Message));
                         throw new ApplicationException("Failed to parse timer information.");
                     }
                 }
@@ -1119,10 +1119,10 @@ namespace MediaBrowser.Plugins.VuPlus
         /// <returns>MediaSourceInfo</returns>
         public async Task<MediaSourceInfo> GetChannelStream(string channelOid, string mediaSourceId, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("[VuPlus] Start GetChannelStream");
+            _logger.LogInformation("[Enigma2] Start GetChannelStream");
 
             var protocol = "http";
-            if (Plugin.Instance.Configuration.UseSecureHTTPS)
+            if (Plugin.Instance.Configuration.UseSecureHTTPSForStreams)
             {
                 protocol = "https";
             }
@@ -1135,9 +1135,14 @@ namespace MediaBrowser.Plugins.VuPlus
                 await ZapToChannel(cancellationToken, channelOid).ConfigureAwait(false);
             }
 
+            if (Plugin.Instance.Configuration.UseLoginForStreams && !string.IsNullOrEmpty(Plugin.Instance.Configuration.WebInterfaceUsername))
+            {
+                baseUrl = protocol + "://" + Plugin.Instance.Configuration.WebInterfaceUsername + ":" + Plugin.Instance.Configuration.WebInterfacePassword + "@" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.StreamingPort;
+            }
+
             _liveStreams++;
             var streamUrl = string.Format("{0}/{1}", baseUrl, channelOid);
-            UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetChannelStream url: {0}", streamUrl));
+            UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetChannelStream url: {0}", streamUrl));
 
             return new MediaSourceInfo
             {
@@ -1176,7 +1181,7 @@ namespace MediaBrowser.Plugins.VuPlus
         /// <returns></returns>
         public async Task ZapToChannel(CancellationToken cancellationToken, string channelOid)
         {
-            _logger.LogInformation("[VuPlus] Start ZapToChannel");
+            _logger.LogInformation("[Enigma2] Start ZapToChannel");
             await EnsureConnectionAsync(cancellationToken).ConfigureAwait(false);
 
             var protocol = "http";
@@ -1188,14 +1193,14 @@ namespace MediaBrowser.Plugins.VuPlus
             var baseUrl = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
 
             var url = string.Format("{0}/web/zap?sRef={1}", baseUrl, channelOid);
-            UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] ZapToChannel url: {0}", url));
+            UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] ZapToChannel url: {0}", url));
 
             using (var stream = await _httpClient.GetStreamAsync(url, cancellationToken).ConfigureAwait(false))
             {
                 using (var reader = new StreamReader(stream))
                 {
                     var xmlResponse = reader.ReadToEnd();
-                    UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] ZapToChannel response: {0}", xmlResponse));
+                    UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] ZapToChannel response: {0}", xmlResponse));
 
                     try
                     {
@@ -1224,16 +1229,16 @@ namespace MediaBrowser.Plugins.VuPlus
 
                             if (e2state != "True")
                             {
-                                _logger.LogError("[VuPlus] Failed to zap to channel.");
-                                _logger.LogError(string.Format("[VuPlus] ZapToChannel e2statetext: {0}", e2statetext));
+                                _logger.LogError("[Enigma2] Failed to zap to channel.");
+                                _logger.LogError(string.Format("[Enigma2] ZapToChannel e2statetext: {0}", e2statetext));
                                 throw new ApplicationException("Failed to zap to channel.");
                             }
                         }
                     }
                     catch (Exception e)
                     {
-                        _logger.LogError("[VuPlus] Failed to parse create timer information.");
-                        _logger.LogError(string.Format("[VuPlus] ZapToChannel error: {0}", e.Message));
+                        _logger.LogError("[Enigma2] Failed to parse create timer information.");
+                        _logger.LogError(string.Format("[Enigma2] ZapToChannel error: {0}", e.Message));
                         throw new ApplicationException("Failed to parse zap to channel information.");
                     }
                 }
@@ -1251,7 +1256,7 @@ namespace MediaBrowser.Plugins.VuPlus
         /// <returns>SeriesTimerInfo</returns>
         public async Task<SeriesTimerInfo> GetNewTimerDefaultsAsync(CancellationToken cancellationToken, ProgramInfo program = null)
         {
-            _logger.LogInformation("[VuPlus] Start GetNewTimerDefaultsAsync");
+            _logger.LogInformation("[Enigma2] Start GetNewTimerDefaultsAsync");
 
             var seriesTimerInfo = new SeriesTimerInfo();
 
@@ -1269,7 +1274,7 @@ namespace MediaBrowser.Plugins.VuPlus
         /// <returns>IEnumerable<ProgramInfo></returns>
         public async Task<IEnumerable<ProgramInfo>> GetProgramsAsync(string channelId, DateTime startDateUtc, DateTime endDateUtc, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("[VuPlus] Start GetProgramsAsync");
+            _logger.LogInformation("[Enigma2] Start GetProgramsAsync");
             await EnsureConnectionAsync(cancellationToken).ConfigureAwait(false);
 
             var rnd = new Random();
@@ -1286,14 +1291,14 @@ namespace MediaBrowser.Plugins.VuPlus
             var baseUrl = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
 
             var url = string.Format("{0}/web/epgservice?sRef={1}", baseUrl, channelId);
-            UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetProgramsAsync url: {0}", url));
+            UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetProgramsAsync url: {0}", url));
 
             using (var stream = await _httpClient.GetStreamAsync(url, cancellationToken).ConfigureAwait(false))
             {
                 using (var reader = new StreamReader(stream))
                 {
                     var xmlResponse = reader.ReadToEnd();
-                    UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetProgramsAsync response: {0}", xmlResponse));
+                    UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetProgramsAsync response: {0}", xmlResponse));
 
                     try
                     {
@@ -1365,12 +1370,12 @@ namespace MediaBrowser.Plugins.VuPlus
                             // Check whether the current element is within the time range passed
                             if (sdate > endDateUtc)
                             {
-                                UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetProgramsAsync epc full ending without adding channel name : {0} program : {1}", e2eventservicename, e2eventtitle));
+                                UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetProgramsAsync epc full ending without adding channel name : {0} program : {1}", e2eventservicename, e2eventtitle));
                                 return programInfos;
                             }
                             else
                             {
-                                UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetProgramsAsync adding program for channel name : {0} program : {1}", e2eventservicename, e2eventtitle));
+                                UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetProgramsAsync adding program for channel name : {0} program : {1}", e2eventservicename, e2eventtitle));
                                 //programInfo.HasImage = false;
                                 //programInfo.ImagePath = null;
                                 //programInfo.ImageUrl = null;
@@ -1380,7 +1385,7 @@ namespace MediaBrowser.Plugins.VuPlus
                                     {
                                         if (channelInfo.Name == e2eventservicename)
                                         {
-                                            UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetProgramsAsync match on channel name : {0}", e2eventservicename));
+                                            UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetProgramsAsync match on channel name : {0}", e2eventservicename));
                                             //programInfo.HasImage = true;
                                             //programInfo.ImagePath = channelInfo.ImagePath;
                                             //programInfo.ImageUrl = channelInfo.ImageUrl;
@@ -1436,8 +1441,8 @@ namespace MediaBrowser.Plugins.VuPlus
                     }
                     catch (Exception e)
                     {
-                        _logger.LogError("[VuPlus] Failed to parse program information.");
-                        _logger.LogError(string.Format("[VuPlus] GetProgramsAsync error: {0}", e.Message));
+                        _logger.LogError("[Enigma2] Failed to parse program information.");
+                        _logger.LogError(string.Format("[Enigma2] GetProgramsAsync error: {0}", e.Message));
                         throw new ApplicationException("Failed to parse channel information.");
                     }
                 }
@@ -1452,7 +1457,7 @@ namespace MediaBrowser.Plugins.VuPlus
         /// <returns>LiveTvServiceStatusInfo</returns>
         public async Task<LiveTvServiceStatusInfo> GetStatusInfoAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("[VuPlus] Start GetStatusInfoAsync Async, retrieve status details");
+            _logger.LogInformation("[Enigma2] Start GetStatusInfoAsync Async, retrieve status details");
             await EnsureConnectionAsync(cancellationToken).ConfigureAwait(false);
 
             //TODO: Version check
@@ -1469,7 +1474,7 @@ namespace MediaBrowser.Plugins.VuPlus
             var baseUrl = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
 
             var url = string.Format("{0}/web/deviceinfo", baseUrl);
-            UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetStatusInfoAsync url: {0}", url));
+            UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetStatusInfoAsync url: {0}", url));
 
             var liveTvTunerInfos = new List<LiveTvTunerInfo>();
 
@@ -1478,7 +1483,7 @@ namespace MediaBrowser.Plugins.VuPlus
                 using (var reader = new StreamReader(stream))
                 {
                     var xmlResponse = reader.ReadToEnd();
-                    UtilsHelper.DebugInformation(_logger, string.Format("[VuPlus] GetStatusInfoAsync response: {0}", xmlResponse));
+                    UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetStatusInfoAsync response: {0}", xmlResponse));
 
                     try
                     {
@@ -1522,8 +1527,8 @@ namespace MediaBrowser.Plugins.VuPlus
                     }
                     catch (Exception e)
                     {
-                        _logger.LogError("[VuPlus] Failed to parse tuner information.");
-                        _logger.LogError(string.Format("[VuPlus] GetStatusInfoAsync error: {0}", e.Message));
+                        _logger.LogError("[Enigma2] Failed to parse tuner information.");
+                        _logger.LogError(string.Format("[Enigma2] GetStatusInfoAsync error: {0}", e.Message));
                         throw new ApplicationException("Failed to parse tuner information.");
                     }
 
@@ -1536,14 +1541,14 @@ namespace MediaBrowser.Plugins.VuPlus
         /// Gets the homepage url.
         /// </summary>
         /// <value>The homepage url.</value>
-        public string HomePageUrl => "http://www.VuPlus.com/";
+        public string HomePageUrl => "https://github.com/oe-alliance";
 
 
         /// <summary>
         /// Gets the name.
         /// </summary>
         /// <value>The name.</value>
-        public string Name => "VuPlus";
+        public string Name => "Enigma2";
 
 
         public async Task<MediaSourceInfo> GetRecordingStream(string recordingId, string mediaSourceId, CancellationToken cancellationToken)
@@ -1560,7 +1565,7 @@ namespace MediaBrowser.Plugins.VuPlus
 
         public async Task CopyFilesAsync(StreamReader source, StreamWriter destination)
         {
-            _logger.LogInformation("[VuPlus] Start CopyFiles Async");
+            _logger.LogInformation("[Enigma2] Start CopyFiles Async");
             var buffer = new char[0x1000];
             int numRead;
             while ((numRead = await source.ReadAsync(buffer, 0, buffer.Length)) != 0)
@@ -1583,7 +1588,7 @@ namespace MediaBrowser.Plugins.VuPlus
         /// <returns></returns>
         public async Task<IEnumerable<SeriesTimerInfo>> GetSeriesTimersAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("[VuPlus] Start GetSeriesTimersAsync");
+            _logger.LogInformation("[Enigma2] Start GetSeriesTimersAsync");
 
             var seriesTimerInfo = new List<SeriesTimerInfo>();
             return seriesTimerInfo;

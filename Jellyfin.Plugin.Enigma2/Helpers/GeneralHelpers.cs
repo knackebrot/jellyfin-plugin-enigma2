@@ -2,7 +2,7 @@ using System;
 using MediaBrowser.Model.LiveTv;
 using Microsoft.Extensions.Logging;
 
-namespace MediaBrowser.Plugins.VuPlus.Helpers
+namespace Jellyfin.Plugin.Enigma2.Helpers
 {
     public static class ChannelHelper
     {

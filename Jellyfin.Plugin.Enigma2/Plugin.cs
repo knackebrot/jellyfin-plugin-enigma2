@@ -4,9 +4,9 @@ using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
-using MediaBrowser.Plugins.VuPlus.Configuration;
+using Jellyfin.Plugin.Enigma2.Configuration;
 
-namespace MediaBrowser.Plugins.VuPlus
+namespace Jellyfin.Plugin.Enigma2
 {
     /// <summary>
     /// Class Plugin
@@ -25,15 +25,15 @@ namespace MediaBrowser.Plugins.VuPlus
         /// Gets the name of the plugin
         /// </summary>
         /// <value>The name.</value>
-        public override string Name => "VuPlus";
+        public override string Name => "Enigma2";
 
         /// <summary>
         /// Gets the description.
         /// </summary>
         /// <value>The description.</value>
-        public override string Description => "Provides live tv using Vu+ / Enigma2 pvr as a back-end.";
+        public override string Description => "Provides live TV using Enigma2 PVR as a back-end.";
 
-        private Guid _id = new Guid("9564ac10-af23-39bc-449f-624f23cfa48f");
+        private Guid _id = new Guid("193f29f9-ea6c-4595-a6f6-55e79d7c590a");
         public override Guid Id => _id;
 
         /// <summary>
@@ -48,8 +48,8 @@ namespace MediaBrowser.Plugins.VuPlus
             {
                 new PluginPageInfo
                 {
-                    Name = "vuplus",
-                    EmbeddedResourcePath = "MediaBrowser.Plugins.VuPlus.Configuration.configPage.html"
+                    Name = "enigma2",
+                    EmbeddedResourcePath = "Jellyfin.Plugin.Enigma2.Configuration.configPage.html"
                 }
             };
         }

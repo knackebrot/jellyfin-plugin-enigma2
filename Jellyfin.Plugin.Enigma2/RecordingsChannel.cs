@@ -15,7 +15,7 @@ using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.LiveTv;
 using MediaBrowser.Model.MediaInfo;
 
-namespace MediaBrowser.Plugins.VuPlus
+namespace Jellyfin.Plugin.Enigma2
 {
     public class RecordingsChannel : IChannel, IHasCacheKey, ISupportsDelete, ISupportsLatestMedia, ISupportsMediaProbe, IHasFolderAttributes
     {
@@ -26,11 +26,11 @@ namespace MediaBrowser.Plugins.VuPlus
             _liveTvManager = liveTvManager;
         }
 
-        public string Name => "VuPlus Recordings";
+        public string Name => "Enigma2 Recordings";
 
         public string[] Attributes => new[] { "Recordings" };
 
-        public string Description => "VuPlus Recordings";
+        public string Description => "Enigma2 Recordings";
 
         public string DataVersion => "1";
 
@@ -181,14 +181,10 @@ namespace MediaBrowser.Plugins.VuPlus
             var service = GetService();
             var allRecordings = await service.GetAllRecordingsAsync(cancellationToken).ConfigureAwait(false);
 
-            var result = new ChannelItemResult()
+            return new ChannelItemResult()
             {
-                Items = new List<ChannelItemInfo>()
+                Items = allRecordings.Where(filter).Select(ConvertToChannelItem).ToList()
             };
-
-            result.Items.AddRange(allRecordings.Where(filter).Select(ConvertToChannelItem));
-
-            return result;
         }
 
         private ChannelItemInfo ConvertToChannelItem(MyRecordingInfo item)
@@ -207,7 +203,7 @@ namespace MediaBrowser.Plugins.VuPlus
                 //HomePageUrl = item.HomePageUrl
                 Id = item.Id,
                 //IndexNumber = item.IndexNumber,
-                MediaType = item.ChannelType == Model.LiveTv.ChannelType.TV ? ChannelMediaType.Video : ChannelMediaType.Audio,
+                MediaType = item.ChannelType == ChannelType.TV ? ChannelMediaType.Video : ChannelMediaType.Audio,
                 MediaSources = new List<MediaSourceInfo>
                 {
                     new MediaSourceInfo
@@ -225,7 +221,7 @@ namespace MediaBrowser.Plugins.VuPlus
                 DateModified = item.DateLastUpdated,
                 Overview = item.Overview,
                 //People = item.People
-                IsLiveStream = item.Status == Model.LiveTv.RecordingStatus.InProgress,
+                IsLiveStream = item.Status == RecordingStatus.InProgress,
                 Etag = item.Status.ToString()
             };
 
@@ -237,16 +233,14 @@ namespace MediaBrowser.Plugins.VuPlus
             var service = GetService();
 
             var allRecordings = await service.GetAllRecordingsAsync(cancellationToken).ConfigureAwait(false);
-            var result = new ChannelItemResult()
-            {
-                Items = new List<ChannelItemInfo>()
-            };
 
             var series = allRecordings
                 .Where(i => i.IsSeries)
                 .ToLookup(i => i.Name, StringComparer.OrdinalIgnoreCase);
 
-            result.Items.AddRange(series.OrderBy(i => i.Key).Select(i => new ChannelItemInfo
+            var items = new List<ChannelItemInfo>();
+
+            items.AddRange(series.OrderBy(i => i.Key).Select(i => new ChannelItemInfo
             {
                 Name = i.Key,
                 FolderType = ChannelFolderType.Container,
@@ -259,7 +253,7 @@ namespace MediaBrowser.Plugins.VuPlus
 
             if (kids != null)
             {
-                result.Items.Add(new ChannelItemInfo
+                items.Add(new ChannelItemInfo
                 {
                     Name = "Kids",
                     FolderType = ChannelFolderType.Container,
@@ -272,7 +266,7 @@ namespace MediaBrowser.Plugins.VuPlus
             var movies = allRecordings.FirstOrDefault(i => i.IsMovie);
             if (movies != null)
             {
-                result.Items.Add(new ChannelItemInfo
+                items.Add(new ChannelItemInfo
                 {
                     Name = "Movies",
                     FolderType = ChannelFolderType.Container,
@@ -285,7 +279,7 @@ namespace MediaBrowser.Plugins.VuPlus
             var news = allRecordings.FirstOrDefault(i => i.IsNews);
             if (news != null)
             {
-                result.Items.Add(new ChannelItemInfo
+                items.Add(new ChannelItemInfo
                 {
                     Name = "News",
                     FolderType = ChannelFolderType.Container,
@@ -298,7 +292,7 @@ namespace MediaBrowser.Plugins.VuPlus
             var sports = allRecordings.FirstOrDefault(i => i.IsSports);
             if (sports != null)
             {
-                result.Items.Add(new ChannelItemInfo
+                items.Add(new ChannelItemInfo
                 {
                     Name = "Sports",
                     FolderType = ChannelFolderType.Container,
@@ -311,7 +305,7 @@ namespace MediaBrowser.Plugins.VuPlus
             var other = allRecordings.FirstOrDefault(i => !i.IsSports && !i.IsNews && !i.IsMovie && !i.IsKids && !i.IsSeries);
             if (other != null)
             {
-                result.Items.Add(new ChannelItemInfo
+                items.Add(new ChannelItemInfo
                 {
                     Name = "Others",
                     FolderType = ChannelFolderType.Container,
@@ -321,7 +315,10 @@ namespace MediaBrowser.Plugins.VuPlus
                 });
             }
 
-            return result;
+            return new ChannelItemResult()
+            {
+                Items = items
+            };
         }
     }
     public class MyRecordingInfo

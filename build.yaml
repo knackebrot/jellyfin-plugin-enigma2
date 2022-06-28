@@ -1,27 +1,27 @@
 ---
 # The name of the plugin; official plugins always start "jellyfin-plugin-"
-name: "jellyfin-plugin-vuplus"
+name: "jellyfin-plugin-enigma2"
 
 # The GUID of the plugin, found in Plugin.cs
-guid: "9564ac10-af23-39bc-449f-624f23cfa48f"
+guid: "193f29f9-ea6c-4595-a6f6-55e79d7c590a"
 
 # The version of the plugin, starting at 1. Note that the AssemblyVersion
 # and FileVersion flags in the `.csproj` file must have two additional
 # fiels, e.g. 1.0.0 to be built correctly.
-version: "4.0.0.0" # Please increment with each pull request
+version: "5.0.0.0" # Please increment with each pull request
 
 # The supported Jellyfin version, usually the earliest binary-compatible
 # version. Based on the Jellyfin components from NuGet.
-targetAbi: "10.7.0.0" # The earliest binary-compatible version
+targetAbi: "10.8.0.0" # The earliest binary-compatible version
 
-framework: "net5.0"
+framework: "net6.0"
 
 # The owner name of the plugin, "jellyfin" for official plugins. Change
 # to your own name if you wish to remain a 3rd-party plugin.
 owner: "knackebrot"
 
 # A short description of the plugin
-overview: "VU+"
+overview: "Enigma2"
 
 # A longer and more detailed description of the plugin; use multiple
 # lines as required for readability.
@@ -35,10 +35,10 @@ category: "Live TV"
 # Include the main output file, as well as any dependency `.dll`s that
 # might be required for the plugin to run.
 artifacts:
-  - "MediaBrowser.Plugins.VuPlus.dll"
+  - "Jellyfin.Plugin.Enigma2.dll"
 
 # Build information values for the build infrastructure; these should
 # not need to be changed usually.
 build_type: "dotnet"
 dotnet_configuration: "Release"
-dotnet_framework: "net5.0"
+dotnet_framework: "net6.0"

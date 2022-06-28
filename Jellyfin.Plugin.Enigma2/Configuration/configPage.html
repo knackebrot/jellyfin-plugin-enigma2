@@ -1,46 +1,56 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Vu+</title>
+    <title>Enigma2</title>
 </head>
 <body>
-    <div data-role="page" id="VuPlusConfigurationPage" class="page type-interior pluginConfigurationPage VuPlusConfigurationPage" data-require="emby-button,emby-checkbox,emby-input">
+    <div data-role="page" id="Enigma2ConfigurationPage" class="page type-interior pluginConfigurationPage Enigma2ConfigurationPage" data-require="emby-button,emby-checkbox,emby-input">
 
         <div data-role="content">
             <div class="content-primary">
 
-                <h1>VuPlus</h1>
+                <h1>Enigma2</h1>
 
-                <form id="VuPlusConfigurationForm" class="VuPlusConfigurationForm">
+                <form id="Enigma2ConfigurationForm" class="Enigma2ConfigurationForm">
 
                     <div class="inputContainer">
-                        <input is="emby-input" id="txtHostName" type="text" label="Vu+ hostname or ip address:" />
+                        <input is="emby-input" id="txtHostName" type="text" label="Enigma2 hostname or ip address:" />
                         <div class="fieldDescription">
                             The host name (address) or ip address of your receiver
                         </div>
                     </div>
                     <div class="inputContainer">
-                        <input is="emby-input" id="txtStreamingPort" type="text" label="Vu+ streaming port:" />
+                        <input is="emby-input" id="txtStreamingPort" type="text" label="Enigma2 streaming port:" />
                         <div class="fieldDescription">
                             The Streaming port of your receiver eg. 8001
                         </div>
                     </div>
                     <div class="inputContainer">
-                        <input is="emby-input" id="txtWebInterfacePort" type="text" label="Vu+ Web Interface port:" />
+                        <input is="emby-input" id="txtWebInterfacePort" type="text" label="Enigma2 Web Interface port:" />
                         <div class="fieldDescription">
-                            The web Interface port of your receiver eg. 8000
+                            The web interface port of your receiver eg. 8000
                         </div>
                     </div>
                     <div class="inputContainer">
-                        <input is="emby-input" id="txtWebInterfaceUsername" type="text" label="Vu+ Web Interface username:" />
+                        <input is="emby-input" id="txtWebInterfaceUsername" type="text" label="Enigma2 Web Interface username:" />
                         <div class="fieldDescription">
-                            The web Interface username of your receiver (optional)
+                            The web interface username of your receiver (optional)
                         </div>
                     </div>
                     <div class="inputContainer">
-                        <input is="emby-input" id="txtWebInterfacePassword" type="text" label="Vu+ Web Interface password:" />
+                        <input is="emby-input" id="txtWebInterfacePassword" type="password" label="Enigma2 Web Interface password:" />
                         <div class="fieldDescription">
-                            The web Interface password of your receiver (optional)
+                            The web interface password of your receiver (optional)
+                        </div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="chkUseLoginForStreams" />
+                            <span>Use login for streaming</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Use web interface login for streaming
                         </div>
                     </div>
 
@@ -56,6 +66,16 @@
 
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label>
+                            <input is="emby-checkbox" type="checkbox" id="chkUseSecureHTTPSForStreams" />
+                            <span>Use secure HTTP (HTTPS) for streams</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Use HTTPS to connect to streaming port
+                        </div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
                             <input is="emby-checkbox" type="checkbox" id="chkOnlyOneBouquet" />
                             <span>Fetch Only one TV bouquet</span>
                         </label>
@@ -66,7 +86,7 @@
 
 
                     <div class="inputContainer">
-                        <input is="emby-input" id="txtTVBouquet" type="text" label="Vu+ TVBouquet:" />
+                        <input is="emby-input" id="txtTVBouquet" type="text" label="Enigma2 TVBouquet:" />
                         <div class="fieldDescription">
                             The TV Bouquet to load channels for (optional)
                         </div>
@@ -109,7 +129,7 @@
 
                     <label class="checkboxContainer">
                         <input is="emby-checkbox" type="checkbox" id="chkDebugLogging" />
-                        <span>Enable VuPlus debug logging</span>
+                        <span>Enable Enigma2 debug logging</span>
                     </label>
 
                     <div>
@@ -122,19 +142,21 @@
 
 
         <script type="text/javascript">
-            var VuPlusConfigurationPage = {
-                pluginUniqueId: "9564ac10-af23-39bc-449f-624f23cfa48f",
+            var Enigma2ConfigurationPage = {
+                pluginUniqueId: "193f29f9-ea6c-4595-a6f6-55e79d7c590a",
 
                 loadConfiguration: function () {
                     Dashboard.showLoadingMsg();
 
-                    ApiClient.getPluginConfiguration(VuPlusConfigurationPage.pluginUniqueId).then(function (config) {
+                    ApiClient.getPluginConfiguration(Enigma2ConfigurationPage.pluginUniqueId).then(function (config) {
                         document.getElementById('txtHostName').value = config.HostName || "";
                         document.getElementById('txtStreamingPort').value = config.StreamingPort || "";
                         document.getElementById('txtWebInterfacePort').value = config.WebInterfacePort || "";
                         document.getElementById('txtWebInterfaceUsername').value = config.WebInterfaceUsername || "";
                         document.getElementById('txtWebInterfacePassword').value = config.WebInterfacePassword || "";
+                        document.getElementById('chkUseLoginForStreams').checked = config.UseLoginForStreams || false;
                         document.getElementById('chkUseSecureHTTPS').checked = config.UseSecureHTTPS || false;
+                        document.getElementById('chkUseSecureHTTPSForStreams').checked = config.UseSecureHTTPSForStreams || false;
                         document.getElementById('chkOnlyOneBouquet').checked = config.OnlyOneBouquet || false;
                         document.getElementById('txtTVBouquet').value = config.TVBouquet || "";
                         document.getElementById('chkZapToChannel').checked = config.ZapToChannel || false;
@@ -150,13 +172,15 @@
                 saveConfiguration: function () {
                     Dashboard.showLoadingMsg();
 
-                    ApiClient.getPluginConfiguration(VuPlusConfigurationPage.pluginUniqueId).then(function (config) {
+                    ApiClient.getPluginConfiguration(Enigma2ConfigurationPage.pluginUniqueId).then(function (config) {
                         config.HostName = document.getElementById('txtHostName').value;
                         config.StreamingPort = document.getElementById('txtStreamingPort').value;
                         config.WebInterfacePort = document.getElementById('txtWebInterfacePort').value;
                         config.WebInterfaceUsername = document.getElementById('txtWebInterfaceUsername').value;
                         config.WebInterfacePassword = document.getElementById('txtWebInterfacePassword').value;
+                        config.UseLoginForStreams = document.getElementById('chkUseLoginForStreams').checked;
                         config.UseSecureHTTPS = document.getElementById('chkUseSecureHTTPS').checked;
+                        config.UseSecureHTTPSForStreams = document.getElementById('chkUseSecureHTTPSForStreams').checked;
                         config.OnlyOneBouquet = document.getElementById('chkOnlyOneBouquet').checked;
                         config.TVBouquet = document.getElementById('txtTVBouquet').value;
                         config.ZapToChannel = document.getElementById('chkZapToChannel').checked;
@@ -165,18 +189,18 @@
                         config.RecordingPath = document.getElementById('txtRecordingPath').value;
                         config.EnableDebugLogging = document.getElementById('chkDebugLogging').checked;
 
-                        ApiClient.updatePluginConfiguration(VuPlusConfigurationPage.pluginUniqueId, config).then(Dashboard.processPluginConfigurationUpdateResult);
+                        ApiClient.updatePluginConfiguration(Enigma2ConfigurationPage.pluginUniqueId, config).then(Dashboard.processPluginConfigurationUpdateResult);
                     });
                 }
             }
 
-            document.getElementById('VuPlusConfigurationPage').addEventListener('pageshow', function () {
-                VuPlusConfigurationPage.loadConfiguration();
+            document.getElementById('Enigma2ConfigurationPage').addEventListener('pageshow', function () {
+                Enigma2ConfigurationPage.loadConfiguration();
             });
 
-            document.getElementById('VuPlusConfigurationForm').addEventListener('submit', function (e) {
+            document.getElementById('Enigma2ConfigurationForm').addEventListener('submit', function (e) {
                 e.preventDefault();
-                VuPlusConfigurationPage.saveConfiguration();
+                Enigma2ConfigurationPage.saveConfiguration();
             });
         </script>
     </div>

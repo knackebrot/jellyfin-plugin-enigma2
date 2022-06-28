@@ -1,6 +1,6 @@
 using MediaBrowser.Model.Plugins;
 
-namespace MediaBrowser.Plugins.VuPlus.Configuration
+namespace Jellyfin.Plugin.Enigma2.Configuration
 {
     /// <summary>
     /// Class PluginConfiguration
@@ -12,7 +12,9 @@ namespace MediaBrowser.Plugins.VuPlus.Configuration
         public string WebInterfacePort { get; set; }
         public string WebInterfaceUsername { get; set; }
         public string WebInterfacePassword { get; set; }
+        public bool UseLoginForStreams { get; set; }
         public bool UseSecureHTTPS { get; set; }
+        public bool UseSecureHTTPSForStreams { get; set; }
         public bool OnlyOneBouquet { get; set; }
         public string TVBouquet { get; set; }
         public bool ZapToChannel { get; set; }
@@ -26,12 +28,14 @@ namespace MediaBrowser.Plugins.VuPlus.Configuration
 
         public PluginConfiguration()
         {
-            HostName = "http://localhost";
+            HostName = "localhost";
             StreamingPort = "8001";
             WebInterfacePort = "8000";
             WebInterfaceUsername = "";
             WebInterfacePassword = "";
+            UseLoginForStreams = false;
             UseSecureHTTPS = false;
+            UseSecureHTTPSForStreams = false;
             OnlyOneBouquet = true;
             TVBouquet = "Favourites (TV)";
             ZapToChannel = false;
@@ -41,7 +45,6 @@ namespace MediaBrowser.Plugins.VuPlus.Configuration
             RecordingPath = "";
 
             EnableDebugLogging = false;
-
         }
     }
 }
