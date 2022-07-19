@@ -552,6 +552,7 @@ namespace Jellyfin.Plugin.Enigma2
         /// <returns>Task{IEnumerable{RecordingInfo}}</returns>
         public async Task<IEnumerable<RecordingInfo>> GetRecordingsAsync(CancellationToken cancellationToken)
         {
+            await Task.Delay(0); //to avoid await warnings
             return new List<RecordingInfo>();
         }
 
@@ -1140,8 +1141,14 @@ namespace Jellyfin.Plugin.Enigma2
                 baseUrl = protocol + "://" + Plugin.Instance.Configuration.WebInterfaceUsername + ":" + Plugin.Instance.Configuration.WebInterfacePassword + "@" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.StreamingPort;
             }
 
+            var trancodingUrl = "";
+            if (Plugin.Instance.Configuration.TranscodedStream)
+            {
+                trancodingUrl = "?bitrate=1000000?width=1280?height=720?vcodec=h264?aspectratio=2?interlaced=0.mp4";
+            }
+
             _liveStreams++;
-            var streamUrl = string.Format("{0}/{1}", baseUrl, channelOid);
+            var streamUrl = string.Format("{0}/{1}{2}", baseUrl, channelOid, trancodingUrl);
             UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetChannelStream url: {0}", streamUrl));
 
             return new MediaSourceInfo
@@ -1258,6 +1265,7 @@ namespace Jellyfin.Plugin.Enigma2
         {
             _logger.LogInformation("[Enigma2] Start GetNewTimerDefaultsAsync");
 
+            await Task.Delay(0); //to avoid await warnings
             var seriesTimerInfo = new SeriesTimerInfo();
 
             return seriesTimerInfo;
@@ -1553,12 +1561,14 @@ namespace Jellyfin.Plugin.Enigma2
 
         public async Task<MediaSourceInfo> GetRecordingStream(string recordingId, string mediaSourceId, CancellationToken cancellationToken)
         {
+            await Task.Delay(0); //to avoid await warnings
             throw new NotImplementedException();
         }
 
 
         public async Task CloseLiveStream(string id, CancellationToken cancellationToken)
         {
+            await Task.Delay(0); //to avoid await warnings
             throw new NotImplementedException();
         }
 
@@ -1589,7 +1599,7 @@ namespace Jellyfin.Plugin.Enigma2
         public async Task<IEnumerable<SeriesTimerInfo>> GetSeriesTimersAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation("[Enigma2] Start GetSeriesTimersAsync");
-
+            await Task.Delay(0); //to avoid await warnings
             var seriesTimerInfo = new List<SeriesTimerInfo>();
             return seriesTimerInfo;
         }
@@ -1603,6 +1613,7 @@ namespace Jellyfin.Plugin.Enigma2
         /// <returns></returns>
         public async Task CreateSeriesTimerAsync(SeriesTimerInfo info, CancellationToken cancellationToken)
         {
+            await Task.Delay(0); //to avoid await warnings
             throw new NotImplementedException();
         }
 
@@ -1615,6 +1626,7 @@ namespace Jellyfin.Plugin.Enigma2
         /// <returns></returns>
         public async Task UpdateSeriesTimerAsync(SeriesTimerInfo info, CancellationToken cancellationToken)
         {
+            await Task.Delay(0); //to avoid await warnings
             throw new NotImplementedException();
         }
 
@@ -1627,6 +1639,7 @@ namespace Jellyfin.Plugin.Enigma2
         /// <returns></returns>
         public async Task UpdateTimerAsync(TimerInfo info, CancellationToken cancellationToken)
         {
+            await Task.Delay(0); //to avoid await warnings
             throw new NotImplementedException();
         }
 
@@ -1639,25 +1652,9 @@ namespace Jellyfin.Plugin.Enigma2
         /// <returns></returns>
         public async Task CancelSeriesTimerAsync(string timerId, CancellationToken cancellationToken)
         {
+            await Task.Delay(0); //to avoid await warnings
             throw new NotImplementedException();
         }
-
-
-        /// <summary>
-        /// Get the DefaultScheduleSettings
-        /// </summary>
-        /// <param name="cancellationToken">The CancellationToken</param>
-        /// <returns></returns>
-        //private async Task<ScheduleSettings> GetDefaultScheduleSettings(CancellationToken cancellationToken)
-        //{
-        //    throw new NotImplementedException();
-        //}
-
-
-        public event EventHandler DataSourceChanged;
-
-
-        public event EventHandler<RecordingStatusChangedEventArgs> RecordingStatusChanged;
 
 
         public Task ResetTuner(string id, CancellationToken cancellationToken)
