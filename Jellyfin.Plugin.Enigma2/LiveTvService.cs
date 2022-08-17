@@ -101,6 +101,12 @@ namespace Jellyfin.Plugin.Enigma2
                 throw new InvalidOperationException("Enigma2 Streaming Port must be configured.");
             }
 
+            if (config.TranscodedStream && string.IsNullOrEmpty(config.TranscodingPort))
+            {
+                _logger.LogError("[Enigma2] Transcoding Port must be configured.");
+                throw new InvalidOperationException("Enigma2 Transcoding Port must be configured.");
+            }
+
             if (string.IsNullOrEmpty(config.WebInterfacePort))
             {
                 _logger.LogError("[Enigma2] Web Interface Port must be configured.");
@@ -1128,8 +1134,15 @@ namespace Jellyfin.Plugin.Enigma2
                 protocol = "https";
             }
 
-            var baseUrl = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.StreamingPort;
+            var streamingPort = Plugin.Instance.Configuration.StreamingPort;
 
+            if (Plugin.Instance.Configuration.TranscodedStream)
+            {
+                streamingPort = Plugin.Instance.Configuration.TranscodingPort;
+            }
+
+            var baseUrl = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + streamingPort;
+            
             //check if we need to zap to channel - single tuner
             if (Plugin.Instance.Configuration.ZapToChannel)
             {
@@ -1138,7 +1151,7 @@ namespace Jellyfin.Plugin.Enigma2
 
             if (Plugin.Instance.Configuration.UseLoginForStreams && !string.IsNullOrEmpty(Plugin.Instance.Configuration.WebInterfaceUsername))
             {
-                baseUrl = protocol + "://" + Plugin.Instance.Configuration.WebInterfaceUsername + ":" + Plugin.Instance.Configuration.WebInterfacePassword + "@" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.StreamingPort;
+                baseUrl = protocol + "://" + Plugin.Instance.Configuration.WebInterfaceUsername + ":" + Plugin.Instance.Configuration.WebInterfacePassword + "@" + Plugin.Instance.Configuration.HostName + ":" + streamingPort;
             }
 
             var trancodingUrl = "";
