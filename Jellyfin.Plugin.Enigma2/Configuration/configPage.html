@@ -127,6 +127,22 @@
                         </div>
                     </div>
 
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="chkTranscodedStream" />
+                            <span>Request Transcoded Stream</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Request Transcoded Stream (h264, 720p, 1Mpbs and mp4 as default)
+                        </div>
+                    </div>
+                    <div class="inputContainer">
+                        <input is="emby-input" id="txtTranscodingPort" type="text" label="Enigma2 transcoding port:" />
+                        <div class="fieldDescription">
+                            The Transcoding port of your receiver eg. 8002
+                        </div>
+                    </div>
+
                     <label class="checkboxContainer">
                         <input is="emby-checkbox" type="checkbox" id="chkDebugLogging" />
                         <span>Enable Enigma2 debug logging</span>
@@ -163,6 +179,8 @@
                         document.getElementById('chkFetchPiconsFromWebInterface').checked = config.FetchPiconsFromWebInterface || false;
                         document.getElementById('txtPiconsPath').value = config.PiconsPath || "";
                         document.getElementById('txtRecordingPath').value = config.RecordingPath || "";
+                        document.getElementById('chkTranscodedStream').checked = config.TranscodedStream || false;
+                        document.getElementById('txtTranscodingPort').value = config.TranscodingPort || "";
                         document.getElementById('chkDebugLogging').checked = config.EnableDebugLogging || false;
 
                         Dashboard.hideLoadingMsg();
@@ -187,6 +205,8 @@
                         config.FetchPiconsFromWebInterface = document.getElementById('chkFetchPiconsFromWebInterface').checked;
                         config.PiconsPath = document.getElementById('txtPiconsPath').value;
                         config.RecordingPath = document.getElementById('txtRecordingPath').value;
+                        config.TranscodedStream = document.getElementById('chkTranscodedStream').checked;
+                        config.TranscodingPort = document.getElementById('txtTranscodingPort').value;
                         config.EnableDebugLogging = document.getElementById('chkDebugLogging').checked;
 
                         ApiClient.updatePluginConfiguration(Enigma2ConfigurationPage.pluginUniqueId, config).then(Dashboard.processPluginConfigurationUpdateResult);
