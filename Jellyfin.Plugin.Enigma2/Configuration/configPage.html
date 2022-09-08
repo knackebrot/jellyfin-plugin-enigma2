@@ -142,6 +142,12 @@
                             The Transcoding port of your receiver eg. 8002
                         </div>
                     </div>
+                    <div class="inputContainer">
+                        <input is="emby-input" id="txtTranscodingBitrate" type="text" label="Enigma2 bitrate value (in kbps):" />
+                        <div class="fieldDescription">
+                            Bitrate value of transcoded stream in kbps
+                        </div>
+                    </div>
 
                     <label class="checkboxContainer">
                         <input is="emby-checkbox" type="checkbox" id="chkDebugLogging" />
@@ -181,6 +187,7 @@
                         document.getElementById('txtRecordingPath').value = config.RecordingPath || "";
                         document.getElementById('chkTranscodedStream').checked = config.TranscodedStream || false;
                         document.getElementById('txtTranscodingPort').value = config.TranscodingPort || "";
+                        document.getElementById('txtTranscodingBitrate').value = config.TranscodingBitrate || "";
                         document.getElementById('chkDebugLogging').checked = config.EnableDebugLogging || false;
 
                         Dashboard.hideLoadingMsg();
@@ -207,6 +214,7 @@
                         config.RecordingPath = document.getElementById('txtRecordingPath').value;
                         config.TranscodedStream = document.getElementById('chkTranscodedStream').checked;
                         config.TranscodingPort = document.getElementById('txtTranscodingPort').value;
+                        config.TranscodingBitrate = document.getElementById('txtTranscodingBitrate').value;
                         config.EnableDebugLogging = document.getElementById('chkDebugLogging').checked;
 
                         ApiClient.updatePluginConfiguration(Enigma2ConfigurationPage.pluginUniqueId, config).then(Dashboard.processPluginConfigurationUpdateResult);

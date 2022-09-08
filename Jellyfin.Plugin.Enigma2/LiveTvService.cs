@@ -107,6 +107,12 @@ namespace Jellyfin.Plugin.Enigma2
                 throw new InvalidOperationException("Enigma2 Transcoding Port must be configured.");
             }
 
+            if (config.TranscodedStream && string.IsNullOrEmpty(config.TranscodingBitrate))
+            {
+                _logger.LogError("[Enigma2] Transcoding Bitrate must be configured.");
+                throw new InvalidOperationException("Enigma2 Transcoding Bitrate must be configured.");
+            }
+
             if (string.IsNullOrEmpty(config.WebInterfacePort))
             {
                 _logger.LogError("[Enigma2] Web Interface Port must be configured.");
@@ -1155,9 +1161,19 @@ namespace Jellyfin.Plugin.Enigma2
             }
 
             var trancodingUrl = "";
+            var transcodingBitrate = 1000000;
+
             if (Plugin.Instance.Configuration.TranscodedStream)
             {
-                trancodingUrl = "?bitrate=1000000?width=1280?height=720?vcodec=h264?aspectratio=2?interlaced=0.mp4";
+                try
+                {
+                    //bitrate kbps to bps
+                    transcodingBitrate = Int32.Parse(Plugin.Instance.Configuration.TranscodingBitrate) * 1000;
+                }
+                catch (FormatException){/*Do nothing, let the value stay as default*/}
+
+                trancodingUrl += "?bitrate=" + transcodingBitrate;
+                trancodingUrl += "?width=1280?height=720?vcodec=h264?aspectratio=2?interlaced=0.mp4";
             }
 
             _liveStreams++;
@@ -1170,24 +1186,23 @@ namespace Jellyfin.Plugin.Enigma2
                 Path = streamUrl,
                 Protocol = MediaProtocol.Http,
                 MediaStreams = new List<MediaStream>
+                    {
+                        new MediaStream
                         {
-                            new MediaStream
-                            {
-                                Type = MediaStreamType.Video,
-                                // Set the index to -1 because we don't know the exact index of the video stream within the container
-                                Index = -1,
+                            Type = MediaStreamType.Video,
+                            // Set the index to -1 because we don't know the exact index of the video stream within the container
+                            Index = -1,
 
-                                // Set to true if unknown to enable deinterlacing
-                                IsInterlaced = true
-
-                            },
-                            new MediaStream
-                            {
-                                Type = MediaStreamType.Audio,
-                                // Set the index to -1 because we don't know the exact index of the audio stream within the container
-                                Index = -1
-                            }
+                            // Set to true if unknown to enable deinterlacing
+                            IsInterlaced = true
+                        },
+                        new MediaStream
+                        {
+                            Type = MediaStreamType.Audio,
+                            // Set the index to -1 because we don't know the exact index of the audio stream within the container
+                            Index = -1
                         }
+                    }
             };
             throw new ResourceNotFoundException(string.Format("Could not stream channel {0}", channelOid));
         }

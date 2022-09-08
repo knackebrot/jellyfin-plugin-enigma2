@@ -8,7 +8,7 @@ guid: "193f29f9-ea6c-4595-a6f6-55e79d7c590a"
 # The version of the plugin, starting at 1. Note that the AssemblyVersion
 # and FileVersion flags in the `.csproj` file must have two additional
 # fiels, e.g. 1.0.0 to be built correctly.
-version: "5.0.1.0" # Please increment with each pull request
+version: "5.0.2.0" # Please increment with each pull request
 
 # The supported Jellyfin version, usually the earliest binary-compatible
 # version. Based on the Jellyfin components from NuGet.
