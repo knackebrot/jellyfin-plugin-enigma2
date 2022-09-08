@@ -27,6 +27,8 @@ namespace Jellyfin.Plugin.Enigma2.Configuration
 
         public string TranscodingPort { get; set; }
 
+        public string TranscodingBitrate { get; set; }
+
         public bool EnableDebugLogging { get; set; }
 
 
@@ -50,6 +52,8 @@ namespace Jellyfin.Plugin.Enigma2.Configuration
 
             TranscodedStream = false;
             TranscodingPort = "8002";
+
+            TranscodingBitrate = "1000";
 
             EnableDebugLogging = false;
         }

@@ -107,6 +107,12 @@ namespace Jellyfin.Plugin.Enigma2
                 throw new InvalidOperationException("Enigma2 Transcoding Port must be configured.");
             }
 
+            if (config.TranscodedStream && string.IsNullOrEmpty(config.TranscodingBitrate))
+            {
+                _logger.LogError("[Enigma2] Transcoding Bitrate must be configured.");
+                throw new InvalidOperationException("Enigma2 Transcoding Bitrate must be configured.");
+            }
+
             if (string.IsNullOrEmpty(config.WebInterfacePort))
             {
                 _logger.LogError("[Enigma2] Web Interface Port must be configured.");
@@ -1155,21 +1161,43 @@ namespace Jellyfin.Plugin.Enigma2
             }
 
             var trancodingUrl = "";
+            var transcodingBitrate = 1000000;
+
             if (Plugin.Instance.Configuration.TranscodedStream)
             {
-                trancodingUrl = "?bitrate=1000000?width=1280?height=720?vcodec=h264?aspectratio=2?interlaced=0.mp4";
+                try
+                {
+                    //bitrate kbps to bps
+                    transcodingBitrate = Int32.Parse(Plugin.Instance.Configuration.TranscodingBitrate) * 1000;
+                }
+                catch (FormatException){/*Do nothing, let the value stay as default*/}
+
+                trancodingUrl += "?bitrate=" + transcodingBitrate;
+                trancodingUrl += "?width=1280?height=720?vcodec=h264?aspectratio=2?interlaced=0.mp4";
             }
 
             _liveStreams++;
             var streamUrl = string.Format("{0}/{1}{2}", baseUrl, channelOid, trancodingUrl);
             UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetChannelStream url: {0}", streamUrl));
 
-            return new MediaSourceInfo
+            if (Plugin.Instance.Configuration.TranscodedStream)
             {
-                Id = _liveStreams.ToString(CultureInfo.InvariantCulture),
-                Path = streamUrl,
-                Protocol = MediaProtocol.Http,
-                MediaStreams = new List<MediaStream>
+                return new MediaSourceInfo
+                {
+                    Id = _liveStreams.ToString(CultureInfo.InvariantCulture),
+                    Path = streamUrl,
+                    Bitrate = transcodingBitrate,
+                    SupportsProbing = false
+                };
+            }
+            else
+            {
+                return new MediaSourceInfo
+                {
+                    Id = _liveStreams.ToString(CultureInfo.InvariantCulture),
+                    Path = streamUrl,
+                    Protocol = MediaProtocol.Http,
+                    MediaStreams = new List<MediaStream>
                         {
                             new MediaStream
                             {
@@ -1179,7 +1207,6 @@ namespace Jellyfin.Plugin.Enigma2
 
                                 // Set to true if unknown to enable deinterlacing
                                 IsInterlaced = true
-
                             },
                             new MediaStream
                             {
@@ -1188,7 +1215,8 @@ namespace Jellyfin.Plugin.Enigma2
                                 Index = -1
                             }
                         }
-            };
+                };
+            }
             throw new ResourceNotFoundException(string.Format("Could not stream channel {0}", channelOid));
         }
 
