@@ -148,6 +148,15 @@
                             Bitrate value of transcoded stream in kbps
                         </div>
                     </div>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="chkTranscodingCodecH265" />
+                            <span>Transcoding codec set to h265</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Transcoding codec set to h265, otherwise it will keep using h264 default codec
+                        </div>
+                    </div>
 
                     <label class="checkboxContainer">
                         <input is="emby-checkbox" type="checkbox" id="chkDebugLogging" />
@@ -188,6 +197,7 @@
                         document.getElementById('chkTranscodedStream').checked = config.TranscodedStream || false;
                         document.getElementById('txtTranscodingPort').value = config.TranscodingPort || "";
                         document.getElementById('txtTranscodingBitrate').value = config.TranscodingBitrate || "";
+                        document.getElementById('chkTranscodingCodecH265').checked = config.TranscodingCodecH265 || false;
                         document.getElementById('chkDebugLogging').checked = config.EnableDebugLogging || false;
 
                         Dashboard.hideLoadingMsg();
@@ -215,6 +225,7 @@
                         config.TranscodedStream = document.getElementById('chkTranscodedStream').checked;
                         config.TranscodingPort = document.getElementById('txtTranscodingPort').value;
                         config.TranscodingBitrate = document.getElementById('txtTranscodingBitrate').value;
+                        config.TranscodingBitrate = document.getElementById('chkTranscodingCodecH265').value;
                         config.EnableDebugLogging = document.getElementById('chkDebugLogging').checked;
 
                         ApiClient.updatePluginConfiguration(Enigma2ConfigurationPage.pluginUniqueId, config).then(Dashboard.processPluginConfigurationUpdateResult);
