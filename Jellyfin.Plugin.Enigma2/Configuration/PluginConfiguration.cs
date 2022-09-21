@@ -54,8 +54,6 @@ namespace Jellyfin.Plugin.Enigma2.Configuration
             TranscodingBitrate = "1000";
             TranscodingCodecH265 = false;
 
-            TranscodingBitrate = "1000";
-
             EnableDebugLogging = false;
         }
     }

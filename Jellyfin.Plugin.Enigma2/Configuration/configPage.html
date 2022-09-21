@@ -133,7 +133,7 @@
                             <span>Request Transcoded Stream</span>
                         </label>
                         <div class="fieldDescription checkboxFieldDescription">
-                            Request Transcoded Stream (h264, 720p, 1Mpbs and mp4 as default)
+                            Request Transcoded Stream (720p resolution as default)
                         </div>
                     </div>
                     <div class="inputContainer">
@@ -225,7 +225,7 @@
                         config.TranscodedStream = document.getElementById('chkTranscodedStream').checked;
                         config.TranscodingPort = document.getElementById('txtTranscodingPort').value;
                         config.TranscodingBitrate = document.getElementById('txtTranscodingBitrate').value;
-                        config.TranscodingBitrate = document.getElementById('chkTranscodingCodecH265').value;
+                        config.TranscodingCodecH265 = document.getElementById('chkTranscodingCodecH265').checked;
                         config.EnableDebugLogging = document.getElementById('chkDebugLogging').checked;
 
                         ApiClient.updatePluginConfiguration(Enigma2ConfigurationPage.pluginUniqueId, config).then(Dashboard.processPluginConfigurationUpdateResult);
