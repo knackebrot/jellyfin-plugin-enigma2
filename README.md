@@ -1,7 +1,5 @@
-# MediaBrowser.Plugins.VuPlus
-MediaBrowser Vu+ Plugin
-
-Plugin for MediaBrowser to allow it to view channels, browse epg, set and delete timers, play recordings etc.
+# Jellyfin Plugin Enigma2
+Plugin for Jellyfin to allow it to view channels, browse epg, set and delete timers, play recordings etc.
 
 Known Issues / Limitations
 --------------------------
@@ -17,10 +15,16 @@ Setup on Vu+ / Enigma2
 Ensure openWebIf is installed and running - go into settings and make a note of them so they can be entered on the MediaBrowser Vu+ config page.
  
  
-Setup on MediaBrowser server
+Setup on Jellyfin server
 ----------------------------
+Install the plugin:
+- Open Jellyfin and go to the Plugin section
+- Open the "Repositories" tab and add https://raw.githubusercontent.com/knackebrot/jellyfin-plugin-enigma2/jellyfin/manifest.json
+- Switch to the tab "Catalogue" and install the "Enigma2" plugin that you can find in the "Live-TV" section
+- Restart the Jellyfin server
 
-Install Vu+ plugin and restart MediaBrowser server.
+Configure the plugin:
+
 Go to config page for Vu+ and amend default contents as follows (at a minimum, the first 3 must be entered):
  
 Vu+ hostname or ip address:
