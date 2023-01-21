@@ -1,0 +1,20 @@
+[
+  {
+    "category": "Live TV",
+    "guid": "193f29f9-ea6c-4595-a6f6-55e79d7c590a",
+    "name": "Enigma2",
+    "description": "Live TV plugin for watching Enigma 2 channels and recordings",
+    "owner": "knackebrot",
+    "overview": "Enigma2",
+    "versions": [
+      {
+        "checksum": "97bbf70d09c6a0565d92c5735feed33d",
+        "changelog": "Jellyfin 10.8 compatibility",
+        "targetAbi": "10.8.0.0",
+        "sourceUrl": "https://github.com/knackebrot/jellyfin-plugin-enigma2/releases/download/5.0.0.0/Jellyfin.Plugin.Enigma2.zip",
+        "timestamp": "2022-06-29 00:00:00",
+        "version": "5.0.0.0"
+      }
+    ]
+  }
+]
