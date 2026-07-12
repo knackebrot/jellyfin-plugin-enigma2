@@ -578,6 +578,12 @@ namespace Jellyfin.Plugin.Enigma2
 
             var baseUrl = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
 
+            var baseUrlRecording = baseUrl;
+            if (!string.IsNullOrEmpty(Plugin.Instance.Configuration.WebInterfaceUsername))
+            {
+                baseUrlRecording = protocol + "://" + Plugin.Instance.Configuration.WebInterfaceUsername + ":" + Plugin.Instance.Configuration.WebInterfacePassword + "@" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
+            }
+
             var url = string.Format("{0}/web/movielist", baseUrl);
             UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetRecordingsAsync url: {0}", url));
 
@@ -721,7 +727,7 @@ namespace Jellyfin.Plugin.Enigma2
                             recordingInfo.Path = null;
                             recordingInfo.ProgramId = null;
                             recordingInfo.SeriesTimerId = null;
-                            recordingInfo.Url = baseUrl + "/file?file=" + WebUtility.UrlEncode(e2filename);
+                            recordingInfo.Url = baseUrlRecording + "/file?file=" + WebUtility.UrlEncode(e2filename);
 
                             recordingInfos.Add(recordingInfo);
                             count = count + 1;
