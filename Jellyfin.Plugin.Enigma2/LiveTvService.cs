@@ -222,11 +222,11 @@ namespace Jellyfin.Plugin.Enigma2
                                 {
                                     if (node.Name == "e2servicereference")
                                     {
-                                        e2servicereference = node.InnerText;
+                                        e2servicereference = node.InnerText.Trim();
                                     }
                                     else if (node.Name == "e2servicename")
                                     {
-                                        e2servicename = node.InnerText;
+                                        e2servicename = node.InnerText.Trim();
                                     }
                                 }
                                 if (tvBouquet == e2servicename)
@@ -283,7 +283,7 @@ namespace Jellyfin.Plugin.Enigma2
             }
             else
             {
-                url = string.Format("{0}/web/getservices?sRef={1}", baseUrl, tvBouquetSRef);
+                url = string.Format("{0}/web/getservices?sRef={1}", baseUrl, Uri.EscapeDataString(tvBouquetSRef));
             }
 
             UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetChannelsAsync url: {0}", url));
@@ -448,7 +448,7 @@ namespace Jellyfin.Plugin.Enigma2
 
             var baseUrlPicon = baseUrl;
 
-            var url = string.Format("{0}/web/getservices?sRef={1}", baseUrl, sRef);
+            var url = string.Format("{0}/web/getservices?sRef={1}", baseUrl, Uri.EscapeDataString(sRef.Trim()));
 
             UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetChannelsForTVBouquetAsync url: {0}", url));
 
