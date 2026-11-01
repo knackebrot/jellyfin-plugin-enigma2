@@ -256,8 +256,13 @@ namespace Jellyfin.Plugin.Enigma2
         }
 
 
+        // Enigma2 service reference flags (second field of the reference, e.g. "1:64:...")
+        private const int ServiceFlagIsDirectory = 0x01;   // bouquet / folder, not a playable service
+        private const int ServiceFlagIsMarker = 0x40;      // label / separator (1:64, 1:320, 1:832, ...)
+
         /// <summary>
-        /// Gets the channels async.
+        /// Gets the channels async. Channels are numbered continuously and de-duplicated by service reference,
+        /// so loading all bouquets does not produce repeated numbers or duplicate channels.
         /// </summary>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Task{IEnumerable{ChannelInfo}}.</returns>
@@ -266,291 +271,189 @@ namespace Jellyfin.Plugin.Enigma2
             _logger.LogInformation("[Enigma2] Start GetChannelsAsync, retrieve all channels");
             await EnsureConnectionAsync(cancellationToken).ConfigureAwait(false);
 
-            var protocol = "http";
-            if (Plugin.Instance.Configuration.UseSecureHTTPS)
-            {
-                protocol = "https";
-            }
+            var channelInfos = new List<ChannelInfo>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            var baseUrl = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
-
-            var baseUrlPicon = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
-
-            string url;
             if (string.IsNullOrEmpty(tvBouquetSRef))
             {
-                url = string.Format("{0}/web/getservices", baseUrl);
+                // Load channels from all TV Bouquets
+                _logger.LogInformation("[Enigma2] GetChannelsAsync for all TV Bouquets");
+
+                foreach (var (bouquetRef, bouquetName) in await GetServicesAsync(null, cancellationToken).ConfigureAwait(false))
+                {
+                    if (!IsDirectory(bouquetRef))
+                    {
+                        continue;
+                    }
+
+                    _logger.LogInformation("[Enigma2] GetChannelsAsync loading bouquet {0}", bouquetName);
+                    await AddChannelsForBouquetAsync(bouquetRef, channelInfos, seen, cancellationToken).ConfigureAwait(false);
+                }
             }
             else
             {
-                url = string.Format("{0}/web/getservices?sRef={1}", baseUrl, tvBouquetSRef);
+                // Load channels for specified TV Bouquet only
+                await AddChannelsForBouquetAsync(tvBouquetSRef, channelInfos, seen, cancellationToken).ConfigureAwait(false);
             }
 
-            UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetChannelsAsync url: {0}", url));
-
-            if (!string.IsNullOrEmpty(Plugin.Instance.Configuration.WebInterfaceUsername))
-            {
-                baseUrlPicon = protocol + "://" + Plugin.Instance.Configuration.WebInterfaceUsername + ":" + Plugin.Instance.Configuration.WebInterfacePassword + "@" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
-            }
-
-            using (var stream = await GetHttpClient().GetStreamAsync(url, cancellationToken).ConfigureAwait(false))
-            {
-                using (var reader = new StreamReader(stream))
-                {
-
-                    var xmlResponse = reader.ReadToEnd();
-                    UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetChannelsAsync response: {0}", xmlResponse));
-
-                    try
-                    {
-                        var xml = new XmlDocument();
-                        xml.LoadXml(xmlResponse);
-
-                        var channelInfos = new List<ChannelInfo>();
-
-                        if (string.IsNullOrEmpty(tvBouquetSRef))
-                        {
-                            // Load channels from all TV Bouquets
-                            _logger.LogInformation("[Enigma2] GetChannelsAsync for all TV Bouquets");
-
-                            var e2services = xml.GetElementsByTagName("e2service");
-                            foreach (XmlNode xmlNode in e2services)
-                            {
-                                var channelInfo = new ChannelInfo();
-                                var e2servicereference = "?";
-                                var e2servicename = "?";
-
-                                foreach (XmlNode node in xmlNode.ChildNodes)
-                                {
-                                    if (node.Name == "e2servicereference")
-                                    {
-                                        e2servicereference = node.InnerText;
-                                    }
-                                    else if (node.Name == "e2servicename")
-                                    {
-                                        e2servicename = node.InnerText;
-                                    }
-                                }
-
-                                // get all channels for TV Bouquet
-                                var channelInfosForBouquet = await GetChannelsForTVBouquetAsync(cancellationToken, e2servicereference).ConfigureAwait(false);
-
-                                // store all channels for TV Bouquet
-                                channelInfos.AddRange(channelInfosForBouquet);
-                            }
-
-                            return channelInfos;
-                        }
-                        else
-                        {
-                            // Load channels for specified TV Bouquet only
-                            var count = 1;
-
-                            var e2services = xml.GetElementsByTagName("e2service");
-                            foreach (XmlNode xmlNode in e2services)
-                            {
-                                var channelInfo = new ChannelInfo();
-
-                                var e2servicereference = "?";
-                                var e2servicename = "?";
-
-                                foreach (XmlNode node in xmlNode.ChildNodes)
-                                {
-                                    if (node.Name == "e2servicereference")
-                                    {
-                                        e2servicereference = node.InnerText;
-                                    }
-                                    else if (node.Name == "e2servicename")
-                                    {
-                                        e2servicename = node.InnerText;
-                                    }
-                                }
-
-                                // Check whether the current element is not just a label
-                                if (!e2servicereference.StartsWith("1:64:"))
-                                {
-                                    //check for radio channel
-                                    if (e2servicereference.ToUpper().Contains("RADIO"))
-                                    {
-                                        channelInfo.ChannelType = ChannelType.Radio;
-                                    }
-                                    else
-                                    {
-                                        channelInfo.ChannelType = ChannelType.TV;
-                                    }
-
-                                    channelInfo.HasImage = true;
-                                    channelInfo.Id = e2servicereference;
-
-                                    // image name is name is e2servicereference with last char removed, then replace all : with _, then add .png
-                                    var imageName = e2servicereference.Remove(e2servicereference.Length - 1);
-                                    imageName = imageName.Replace(":", "_");
-                                    imageName = imageName + ".png";
-                                    //var imageUrl = string.Format("{0}/picon/{1}", baseUrl, imageName);
-                                    var imageUrl = string.Format("{0}/picon/{1}", baseUrlPicon, imageName);
-
-                                    if (Plugin.Instance.Configuration.FetchPiconsFromWebInterface)
-                                    {
-                                        channelInfo.ImagePath = null;
-                                        //channelInfo.ImageUrl = WebUtility.UrlEncode(imageUrl);
-                                        channelInfo.ImageUrl = imageUrl;
-                                    }
-                                    else
-                                    {
-                                        channelInfo.ImagePath = Plugin.Instance.Configuration.PiconsPath + imageName;
-                                        channelInfo.ImageUrl = null;
-                                    }
-
-                                    channelInfo.Name = e2servicename;
-                                    channelInfo.Number = count.ToString();
-
-                                    channelInfos.Add(channelInfo);
-                                    count = count + 1;
-                                }
-                                else
-                                {
-                                    _logger.LogInformation("[Enigma2] ignoring channel label " + e2servicereference);
-                                }
-                            }
-                        }
-                        tvChannelInfos = channelInfos;
-                        return channelInfos;
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.LogError("[Enigma2] Failed to parse channel information.");
-                        _logger.LogError(string.Format("[Enigma2] GetChannelsAsync error: {0}", e.Message));
-                        throw new ApplicationException("Failed to parse channel information.");
-                    }
-                }
-            }
+            _logger.LogInformation("[Enigma2] GetChannelsAsync loaded {0} channels", channelInfos.Count);
+            tvChannelInfos = channelInfos;
+            return channelInfos;
         }
 
-
         /// <summary>
-        /// Gets the channels async.
+        /// Gets the channels of one TV Bouquet.
         /// </summary>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <param name="sRef">Service reference</param>
+        /// <param name="sRef">Service reference of the bouquet</param>
         /// <returns>Task{List<ChannelInfo>}.</returns>
         public async Task<List<ChannelInfo>> GetChannelsForTVBouquetAsync(CancellationToken cancellationToken, string sRef)
         {
-            _logger.LogInformation("[Enigma2] Start GetChannelsForTVBouquetAsync, retrieve all channels for TV Bouquet " + sRef);
-            await EnsureConnectionAsync(cancellationToken).ConfigureAwait(false);
+            var channelInfos = new List<ChannelInfo>();
+            await AddChannelsForBouquetAsync(sRef, channelInfos, new HashSet<string>(StringComparer.OrdinalIgnoreCase), cancellationToken).ConfigureAwait(false);
+            return channelInfos;
+        }
 
-            var protocol = "http";
-            if (Plugin.Instance.Configuration.UseSecureHTTPS)
+        /// <summary>
+        /// Adds the playable channels of a bouquet to <paramref name="channelInfos"/>, skipping markers,
+        /// sub-folders, placeholder entries and channels already in <paramref name="seen"/>.
+        /// </summary>
+        private async Task AddChannelsForBouquetAsync(string bouquetRef, List<ChannelInfo> channelInfos, HashSet<string> seen, CancellationToken cancellationToken)
+        {
+            var config = Plugin.Instance.Configuration;
+            var protocol = config.UseSecureHTTPS ? "https" : "http";
+            var baseUrlPicon = protocol + "://" + config.HostName + ":" + config.WebInterfacePort;
+            if (!string.IsNullOrEmpty(config.WebInterfaceUsername))
             {
-                protocol = "https";
+                baseUrlPicon = protocol + "://" + config.WebInterfaceUsername + ":" + config.WebInterfacePassword + "@" + config.HostName + ":" + config.WebInterfacePort;
             }
 
-            var baseUrl = protocol + "://" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
-
-            var baseUrlPicon = baseUrl;
-
-            var url = string.Format("{0}/web/getservices?sRef={1}", baseUrl, sRef);
-
-            UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetChannelsForTVBouquetAsync url: {0}", url));
-
-            if (!string.IsNullOrEmpty(Plugin.Instance.Configuration.WebInterfaceUsername))
+            foreach (var (serviceRef, serviceName) in await GetServicesAsync(bouquetRef, cancellationToken).ConfigureAwait(false))
             {
-                baseUrlPicon = protocol + "://" + Plugin.Instance.Configuration.WebInterfaceUsername + ":" + Plugin.Instance.Configuration.WebInterfacePassword + "@" + Plugin.Instance.Configuration.HostName + ":" + Plugin.Instance.Configuration.WebInterfacePort;
-            }
-
-            using (var stream = await GetHttpClient().GetStreamAsync(url, cancellationToken).ConfigureAwait(false))
-            {
-                using (var reader = new StreamReader(stream))
+                if (IsMarker(serviceRef) || IsDirectory(serviceRef))
                 {
-                    var xmlResponse = reader.ReadToEnd();
-                    UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetChannelsForTVBouquetAsync response: {0}", xmlResponse));
+                    UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] ignoring label/folder {0} ({1})", serviceRef, serviceName));
+                    continue;
+                }
 
-                    try
+                if (string.IsNullOrWhiteSpace(serviceName) || serviceName == "<n/a>" || serviceName == "?")
+                {
+                    _logger.LogInformation("[Enigma2] ignoring service without name {0}", serviceRef);
+                    continue;
+                }
+
+                if (!seen.Add(serviceRef))
+                {
+                    UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] ignoring duplicate channel {0} ({1})", serviceName, serviceRef));
+                    continue;
+                }
+
+                var channelInfo = new ChannelInfo
+                {
+                    Id = serviceRef,
+                    Name = serviceName,
+                    Number = (channelInfos.Count + 1).ToString(CultureInfo.InvariantCulture),
+                    ChannelType = IsRadio(serviceRef) ? ChannelType.Radio : ChannelType.TV,
+                    HasImage = true
+                };
+
+                // picon name is the service reference without the trailing ':', with ':' replaced by '_', plus .png
+                var imageName = serviceRef.TrimEnd(':').Replace(":", "_") + ".png";
+                if (config.FetchPiconsFromWebInterface)
+                {
+                    channelInfo.ImagePath = null;
+                    channelInfo.ImageUrl = string.Format("{0}/picon/{1}", baseUrlPicon, imageName);
+                }
+                else
+                {
+                    channelInfo.ImagePath = config.PiconsPath + imageName;
+                    channelInfo.ImageUrl = null;
+                }
+
+                channelInfos.Add(channelInfo);
+            }
+        }
+
+        /// <summary>
+        /// Calls /web/getservices (optionally for one bouquet) and returns (reference, name) pairs.
+        /// </summary>
+        private async Task<List<(string Ref, string Name)>> GetServicesAsync(string sRef, CancellationToken cancellationToken)
+        {
+            var config = Plugin.Instance.Configuration;
+            var protocol = config.UseSecureHTTPS ? "https" : "http";
+            var url = protocol + "://" + config.HostName + ":" + config.WebInterfacePort + "/web/getservices";
+            if (!string.IsNullOrEmpty(sRef))
+            {
+                url += "?sRef=" + Uri.EscapeDataString(sRef);
+            }
+
+            UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetServicesAsync url: {0}", url));
+
+            string xmlResponse;
+            using (var stream = await GetHttpClient().GetStreamAsync(url, cancellationToken).ConfigureAwait(false))
+            using (var reader = new StreamReader(stream))
+            {
+                xmlResponse = await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] GetServicesAsync response: {0}", xmlResponse));
+
+            try
+            {
+                var xml = new XmlDocument();
+                xml.LoadXml(xmlResponse);
+
+                var services = new List<(string Ref, string Name)>();
+                foreach (XmlNode xmlNode in xml.GetElementsByTagName("e2service"))
+                {
+                    var e2servicereference = xmlNode["e2servicereference"]?.InnerText?.Trim();
+                    var e2servicename = xmlNode["e2servicename"]?.InnerText?.Trim();
+                    if (!string.IsNullOrEmpty(e2servicereference))
                     {
-                        var xml = new XmlDocument();
-                        xml.LoadXml(xmlResponse);
-
-                        var channelInfos = new List<ChannelInfo>();
-
-                        // Load channels for specified TV Bouquet only
-
-                        var count = 1;
-
-                        var e2services = xml.GetElementsByTagName("e2service");
-                        foreach (XmlNode xmlNode in e2services)
-                        {
-                            var channelInfo = new ChannelInfo();
-
-                            var e2servicereference = "?";
-                            var e2servicename = "?";
-
-                            foreach (XmlNode node in xmlNode.ChildNodes)
-                            {
-                                if (node.Name == "e2servicereference")
-                                {
-                                    e2servicereference = node.InnerText;
-                                }
-                                else if (node.Name == "e2servicename")
-                                {
-                                    e2servicename = node.InnerText;
-                                }
-                            }
-
-                            // Check whether the current element is not just a label
-                            if (!e2servicereference.StartsWith("1:64:"))
-                            {
-                                //check for radio channel
-                                if (e2servicereference.Contains("radio"))
-                                {
-                                    channelInfo.ChannelType = ChannelType.Radio;
-                                }
-                                else
-                                {
-                                    channelInfo.ChannelType = ChannelType.TV;
-                                }
-
-                                channelInfo.HasImage = true;
-                                channelInfo.Id = e2servicereference;
-
-                                // image name is name is e2servicereference with last char removed, then replace all : with _, then add .png
-                                var imageName = e2servicereference.Remove(e2servicereference.Length - 1);
-                                imageName = imageName.Replace(":", "_");
-                                imageName = imageName + ".png";
-                                //var imageUrl = string.Format("{0}/picon/{1}", baseUrl, imageName);
-                                var imageUrl = string.Format("{0}/picon/{1}", baseUrlPicon, imageName);
-
-                                if (Plugin.Instance.Configuration.FetchPiconsFromWebInterface)
-                                {
-                                    channelInfo.ImagePath = null;
-                                    //channelInfo.ImageUrl = WebUtility.UrlEncode(imageUrl);
-                                    channelInfo.ImageUrl = imageUrl;
-                                }
-                                else
-                                {
-                                    channelInfo.ImagePath = Plugin.Instance.Configuration.PiconsPath + imageName;
-                                    channelInfo.ImageUrl = null;
-                                }
-
-                                channelInfo.Name = e2servicename;
-                                channelInfo.Number = count.ToString();
-
-                                channelInfos.Add(channelInfo);
-                                count++;
-                            }
-                            else
-                            {
-                                UtilsHelper.DebugInformation(_logger, string.Format("[Enigma2] ignoring channel {0}", e2servicereference));
-                            }
-                        }
-                        return channelInfos;
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.LogError("[Enigma2] Failed to parse channel information.");
-                        _logger.LogError(string.Format("[Enigma2] GetChannelsForTVBouquetAsync error: {0}", e.Message));
-                        throw new ApplicationException("Failed to parse channel information.");
+                        services.Add((e2servicereference, e2servicename));
                     }
                 }
+
+                return services;
             }
+            catch (Exception e)
+            {
+                _logger.LogError("[Enigma2] Failed to parse channel information.");
+                _logger.LogError(string.Format("[Enigma2] GetServicesAsync error: {0}", e.Message));
+                throw new ApplicationException("Failed to parse channel information.");
+            }
+        }
+
+        private static int GetServiceRefField(string serviceRef, int index)
+        {
+            var parts = serviceRef.Split(':');
+            if (parts.Length > index
+                && int.TryParse(parts[index], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var value))
+            {
+                return value;
+            }
+
+            return 0;
+        }
+
+        // Flags are decimal in service references (e.g. "1:64:", "1:7:", "1:134:")
+        private static int GetServiceFlags(string serviceRef)
+        {
+            var parts = serviceRef.Split(':');
+            return parts.Length > 1 && int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var flags) ? flags : 0;
+        }
+
+        private static bool IsMarker(string serviceRef) => (GetServiceFlags(serviceRef) & ServiceFlagIsMarker) != 0;
+
+        // Bouquets/folders have the directory bit set (1:7:...). Alternatives (1:134:...) also contain
+        // "FROM BOUQUET" but are playable channel groups, so they are deliberately not treated as folders.
+        private static bool IsDirectory(string serviceRef) => (GetServiceFlags(serviceRef) & ServiceFlagIsDirectory) != 0;
+
+        // Service type (third field, hex): 2 = radio, 0x0A = advanced codec radio
+        private static bool IsRadio(string serviceRef)
+        {
+            var type = GetServiceRefField(serviceRef, 2);
+            return type == 0x02 || type == 0x0A || serviceRef.Contains("radio", StringComparison.OrdinalIgnoreCase);
         }
 
 
